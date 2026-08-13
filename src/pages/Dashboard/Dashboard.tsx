@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { useNavigate } from "react-router-dom";
 
 type Home = {
   id: string;
@@ -9,6 +10,7 @@ type Home = {
 };
 
 function Dashboard() {
+  const navigate = useNavigate();
   const [homes, setHomes] = useState<Home[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -77,12 +79,31 @@ function Dashboard() {
       {homes.length === 0 ? (
         <p>No homes found.</p>
       ) : (
-        homes.map((home) => (
-          <div key={home.id}>
-            <h3>🏠 {home.name}</h3>
-            <p>📍 {home.address || "No address provided"}</p>
-          </div>
-        ))
+       homes.map((home) => (
+  <div
+    key={home.id}
+    onClick={() => navigate(`/rooms?home=${home.id}`)}
+    style={{
+      cursor: "pointer",
+      marginBottom: "1rem",
+      padding: "1rem",
+      border: "1px solid #ccc",
+      borderRadius: "8px",
+    }}
+  >
+    <h3>🏠 {home.name}</h3>
+    <p>📍 {home.address || "No address provided"}</p>
+
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        navigate(`/rooms?home=${home.id}`);
+      }}
+    >
+      View Rooms →
+    </button>
+  </div>
+))
       )}
 
       <br />

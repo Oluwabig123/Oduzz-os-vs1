@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 
 type Home = {
@@ -14,61 +15,57 @@ type Room = {
 };
 
 function Rooms() {
-  const [homes, setHomes] = useState<Home[]>([]);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const homeId = searchParams.get("home");
+
+  const [home, setHome] = useState<Home | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
-
-  const [selectedHome, setSelectedHome] = useState("");
   const [roomName, setRoomName] = useState("");
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  async function loadHomes() {
-    const { data, error } = await supabase
-      .from("homes")
-      .select("id, name")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error loading homes:", error);
-    } else {
-      setHomes(data ?? []);
-
-      if (data && data.length > 0) {
-        setSelectedHome(data[0].id);
-      }
+  async function loadHomeAndRooms() {
+    if (!homeId) {
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
-  }
+    const { data: homeData, error: homeError } = await supabase
+      .from("homes")
+      .select("id, name")
+      .eq("id", homeId)
+      .single();
 
-  async function loadRooms(homeId: string) {
-    const { data, error } = await supabase
+    if (homeError) {
+      console.error("Error loading home:", homeError);
+    } else {
+      setHome(homeData);
+    }
+
+    const { data: roomsData, error: roomsError } = await supabase
       .from("rooms")
       .select("*")
       .eq("home_id", homeId)
       .order("created_at", { ascending: true });
 
-    if (error) {
-      console.error("Error loading rooms:", error);
+    if (roomsError) {
+      console.error("Error loading rooms:", roomsError);
     } else {
-      setRooms(data ?? []);
+      setRooms(roomsData ?? []);
     }
+
+    setLoading(false);
   }
 
   useEffect(() => {
-    loadHomes();
-  }, []);
-
-  useEffect(() => {
-    if (selectedHome) {
-      loadRooms(selectedHome);
-    }
-  }, [selectedHome]);
+    loadHomeAndRooms();
+  }, [homeId]);
 
   async function createRoom() {
-    if (!selectedHome) {
-      alert("Please select a home.");
+    if (!homeId) {
+      alert("No home selected.");
       return;
     }
 
@@ -81,7 +78,7 @@ function Rooms() {
 
     const { error } = await supabase.from("rooms").insert([
       {
-        home_id: selectedHome,
+        home_id: homeId,
         name: roomName.trim(),
       },
     ]);
@@ -90,7 +87,7 @@ function Rooms() {
       alert(error.message);
     } else {
       setRoomName("");
-      await loadRooms(selectedHome);
+      await loadHomeAndRooms();
     }
 
     setSaving(false);
@@ -100,26 +97,38 @@ function Rooms() {
     return <p style={{ padding: "2rem" }}>Loading...</p>;
   }
 
+  if (!homeId || !home) {
+    return (
+      <div style={{ padding: "2rem" }}>
+        <h1>ODUZZ OS</h1>
+        <p>No home selected.</p>
+
+        <button onClick={() => navigate("/")}>
+          ← Back to Homes
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{ padding: "2rem" }}>
-      <h1>ODUZZ OS</h1>
+      <button onClick={() => navigate("/")}>
+        ← Back to Homes
+      </button>
+
+      <h1>🏠 {home.name}</h1>
 
       <h2>Rooms</h2>
 
-      <label>Select Home</label>
-
-      <br />
-
-      <select
-        value={selectedHome}
-        onChange={(e) => setSelectedHome(e.target.value)}
-      >
-        {homes.map((home) => (
-          <option key={home.id} value={home.id}>
-            {home.name}
-          </option>
-        ))}
-      </select>
+      {rooms.length === 0 ? (
+        <p>No rooms found.</p>
+      ) : (
+        rooms.map((room) => (
+          <div key={room.id}>
+            <p>🚪 {room.name}</p>
+          </div>
+        ))
+      )}
 
       <h3>Add Room</h3>
 
@@ -133,18 +142,6 @@ function Rooms() {
       <button onClick={createRoom} disabled={saving}>
         {saving ? "Saving..." : "Add Room"}
       </button>
-
-      <h3>Rooms in this Home</h3>
-
-      {rooms.length === 0 ? (
-        <p>No rooms found.</p>
-      ) : (
-        rooms.map((room) => (
-          <div key={room.id}>
-            <p>🚪 {room.name}</p>
-          </div>
-        ))
-      )}
     </div>
   );
 }
