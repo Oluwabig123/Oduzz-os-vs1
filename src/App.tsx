@@ -1,10 +1,7 @@
+import CreateHome from "./pages/Home/CreateHome";
+
 function App() {
-  return (
-    <div>
-      <h1>ODUZZ OS</h1>
-      <p>Welcome to the future of intelligent electrical management.</p>
-    </div>
-  );
+  return <CreateHome />;
 }
 
 export default App;
