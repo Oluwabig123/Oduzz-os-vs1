@@ -1,3 +1,4 @@
+import { processPendingCommands } from "../../hub/virtualHub";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
@@ -108,6 +109,29 @@ function Devices() {
     }
   }, [selectedRoom]);
 
+  async function sendCommand(
+  deviceId: string,
+  command: "TURN_ON" | "TURN_OFF"
+) {
+  const { error } = await supabase
+    .from("device_commands")
+    .insert([
+      {
+        device_id: deviceId,
+        command,
+        status: "pending",
+      },
+    ]);
+
+  if (error) {
+    console.error("Command error:", error);
+    alert(error.message);
+    return;
+  }
+
+  alert(`Command sent: ${command}`);
+}
+
   async function createDevice() {
     if (!selectedRoom) {
       alert("Please select a room.");
@@ -157,7 +181,9 @@ function Devices() {
     <div style={{ padding: "2rem" }}>
       <h1>ODUZZ OS</h1>
 
-      <h2>Devices</h2>
+      <h2><button onClick={processPendingCommands}>
+        Process Pending Commands
+      </button></h2>
 
       <label>Home</label>
 
@@ -215,7 +241,19 @@ function Devices() {
 
             <p>UID: {device.device_uid}</p>
 
-            <p>Status: Not connected</p>
+            <p>Status: Virtual Device</p>
+
+<button
+  onClick={() => sendCommand(device.id, "TURN_ON")}
+>
+  TURN ON
+</button>
+
+<button
+  onClick={() => sendCommand(device.id, "TURN_OFF")}
+>
+  TURN OFF
+</button>
           </div>
         ))
       )}
