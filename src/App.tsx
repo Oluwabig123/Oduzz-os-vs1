@@ -1,7 +1,7 @@
-import CreateHome from "./pages/Home/CreateHome";
+import Dashboard from "./pages/Dashboard/Dashboard";
 
 function App() {
-  return <CreateHome />;
+  return <Dashboard />;
 }
 
 export default App;
