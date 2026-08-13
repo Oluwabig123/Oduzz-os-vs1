@@ -12,9 +12,19 @@ type Room = {
   name: string;
 };
 
+type Device = {
+  id: string;
+  room_id: string;
+  name: string;
+  device_type: string;
+  device_uid: string;
+  created_at: string;
+};
+
 function Devices() {
   const [homes, setHomes] = useState<Home[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
 
   const [selectedHome, setSelectedHome] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
@@ -66,6 +76,20 @@ function Devices() {
     }
   }
 
+  async function loadDevices(roomId: string) {
+    const { data, error } = await supabase
+      .from("devices")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error loading devices:", error);
+    } else {
+      setDevices(data ?? []);
+    }
+  }
+
   useEffect(() => {
     loadHomes();
   }, []);
@@ -75,6 +99,14 @@ function Devices() {
       loadRooms(selectedHome);
     }
   }, [selectedHome]);
+
+  useEffect(() => {
+    if (selectedRoom) {
+      loadDevices(selectedRoom);
+    } else {
+      setDevices([]);
+    }
+  }, [selectedRoom]);
 
   async function createDevice() {
     if (!selectedRoom) {
@@ -106,10 +138,12 @@ function Devices() {
     if (error) {
       alert(error.message);
     } else {
-      alert("Device created successfully!");
-
       setDeviceName("");
       setDeviceUid("");
+
+      await loadDevices(selectedRoom);
+
+      alert("Device created successfully!");
     }
 
     setSaving(false);
@@ -123,7 +157,7 @@ function Devices() {
     <div style={{ padding: "2rem" }}>
       <h1>ODUZZ OS</h1>
 
-      <h2>Add Device</h2>
+      <h2>Devices</h2>
 
       <label>Home</label>
 
@@ -158,8 +192,37 @@ function Devices() {
         ))}
       </select>
 
-      <br />
-      <br />
+      <h3>Devices in this Room</h3>
+
+      {devices.length === 0 ? (
+        <p>No devices found.</p>
+      ) : (
+        devices.map((device) => (
+          <div
+            key={device.id}
+            style={{
+              border: "1px solid #ccc",
+              padding: "1rem",
+              marginBottom: "1rem",
+              borderRadius: "8px",
+            }}
+          >
+            <h3>
+              {device.device_type === "light" ? "💡" : "🔌"} {device.name}
+            </h3>
+
+            <p>Type: {device.device_type}</p>
+
+            <p>UID: {device.device_uid}</p>
+
+            <p>Status: Not connected</p>
+          </div>
+        ))
+      )}
+
+      <hr />
+
+      <h3>Add Device</h3>
 
       <label>Device Name</label>
 
