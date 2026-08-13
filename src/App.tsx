@@ -1,7 +1,7 @@
-import Dashboard from "./pages/Dashboard/Dashboard";
+import Rooms from "./pages/Rooms/Rooms";
 
 function App() {
-  return <Dashboard />;
+  return <Rooms />;
 }
 
 export default App;
