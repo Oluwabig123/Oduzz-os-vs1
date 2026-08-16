@@ -1,6 +1,6 @@
-import { processPendingCommands } from "../../hub/virtualHub";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { processPendingCommands } from "../../hub/virtualHub";
 
 type Home = {
   id: string;
@@ -22,10 +22,20 @@ type Device = {
   created_at: string;
 };
 
+type DeviceState = {
+  device_id: string;
+  desired_state: string;
+  actual_state: string;
+  updated_at: string;
+};
+
 function Devices() {
   const [homes, setHomes] = useState<Home[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [deviceStates, setDeviceStates] = useState<
+    Record<string, DeviceState>
+  >({});
 
   const [selectedHome, setSelectedHome] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
@@ -78,17 +88,45 @@ function Devices() {
   }
 
   async function loadDevices(roomId: string) {
-    const { data, error } = await supabase
+    const { data: devicesData, error: devicesError } = await supabase
       .from("devices")
       .select("*")
       .eq("room_id", roomId)
       .order("created_at", { ascending: true });
 
-    if (error) {
-      console.error("Error loading devices:", error);
-    } else {
-      setDevices(data ?? []);
+    if (devicesError) {
+      console.error("Error loading devices:", devicesError);
+      return;
     }
+
+    const loadedDevices = devicesData ?? [];
+
+    setDevices(loadedDevices);
+
+    if (loadedDevices.length === 0) {
+      setDeviceStates({});
+      return;
+    }
+
+    const deviceIds = loadedDevices.map((device) => device.id);
+
+    const { data: statesData, error: statesError } = await supabase
+      .from("device_states")
+      .select("*")
+      .in("device_id", deviceIds);
+
+    if (statesError) {
+      console.error("Error loading device states:", statesError);
+      return;
+    }
+
+    const statesMap: Record<string, DeviceState> = {};
+
+    (statesData ?? []).forEach((state) => {
+      statesMap[state.device_id] = state;
+    });
+
+    setDeviceStates(statesMap);
   }
 
   useEffect(() => {
@@ -106,31 +144,32 @@ function Devices() {
       loadDevices(selectedRoom);
     } else {
       setDevices([]);
+      setDeviceStates({});
     }
   }, [selectedRoom]);
 
   async function sendCommand(
-  deviceId: string,
-  command: "TURN_ON" | "TURN_OFF"
-) {
-  const { error } = await supabase
-    .from("device_commands")
-    .insert([
-      {
-        device_id: deviceId,
-        command,
-        status: "pending",
-      },
-    ]);
+    deviceId: string,
+    command: "TURN_ON" | "TURN_OFF"
+  ) {
+    const { error } = await supabase
+      .from("device_commands")
+      .insert([
+        {
+          device_id: deviceId,
+          command,
+          status: "pending",
+        },
+      ]);
 
-  if (error) {
-    console.error("Command error:", error);
-    alert(error.message);
-    return;
+    if (error) {
+      console.error("Command error:", error);
+      alert(error.message);
+      return;
+    }
+
+    alert(`Command sent: ${command}`);
   }
-
-  alert(`Command sent: ${command}`);
-}
 
   async function createDevice() {
     if (!selectedRoom) {
@@ -150,27 +189,58 @@ function Devices() {
 
     setSaving(true);
 
-    const { error } = await supabase.from("devices").insert([
-      {
-        room_id: selectedRoom,
-        name: deviceName.trim(),
-        device_type: deviceType,
-        device_uid: deviceUid.trim(),
-      },
-    ]);
+    const { data: newDevice, error } = await supabase
+      .from("devices")
+      .insert([
+        {
+          room_id: selectedRoom,
+          name: deviceName.trim(),
+          device_type: deviceType,
+          device_uid: deviceUid.trim(),
+        },
+      ])
+      .select()
+      .single();
 
     if (error) {
       alert(error.message);
-    } else {
-      setDeviceName("");
-      setDeviceUid("");
-
-      await loadDevices(selectedRoom);
-
-      alert("Device created successfully!");
+      setSaving(false);
+      return;
     }
 
+    const { error: stateError } = await supabase
+      .from("device_states")
+      .insert([
+        {
+          device_id: newDevice.id,
+          desired_state: "OFF",
+          actual_state: "OFF",
+        },
+      ]);
+
+    if (stateError) {
+      console.error("Error creating device state:", stateError);
+      alert(stateError.message);
+      setSaving(false);
+      return;
+    }
+
+    setDeviceName("");
+    setDeviceUid("");
+
+    await loadDevices(selectedRoom);
+
+    alert("Device created successfully!");
+
     setSaving(false);
+  }
+
+  async function handleProcessCommands() {
+    await processPendingCommands();
+
+    if (selectedRoom) {
+      await loadDevices(selectedRoom);
+    }
   }
 
   if (loading) {
@@ -181,9 +251,14 @@ function Devices() {
     <div style={{ padding: "2rem" }}>
       <h1>ODUZZ OS</h1>
 
-      <h2><button onClick={processPendingCommands}>
+      <h2>Devices</h2>
+
+      <button onClick={handleProcessCommands}>
         Process Pending Commands
-      </button></h2>
+      </button>
+
+      <br />
+      <br />
 
       <label>Home</label>
 
@@ -223,39 +298,59 @@ function Devices() {
       {devices.length === 0 ? (
         <p>No devices found.</p>
       ) : (
-        devices.map((device) => (
-          <div
-            key={device.id}
-            style={{
-              border: "1px solid #ccc",
-              padding: "1rem",
-              marginBottom: "1rem",
-              borderRadius: "8px",
-            }}
-          >
-            <h3>
-              {device.device_type === "light" ? "💡" : "🔌"} {device.name}
-            </h3>
+        devices.map((device) => {
+          const state = deviceStates[device.id];
 
-            <p>Type: {device.device_type}</p>
+          return (
+            <div
+              key={device.id}
+              style={{
+                border: "1px solid #ccc",
+                padding: "1rem",
+                marginBottom: "1rem",
+                borderRadius: "8px",
+              }}
+            >
+              <h3>
+                {device.device_type === "light" ? "💡" : "🔌"}{" "}
+                {device.name}
+              </h3>
 
-            <p>UID: {device.device_uid}</p>
+              <p>Type: {device.device_type}</p>
 
-            <p>Status: Virtual Device</p>
+              <p>UID: {device.device_uid}</p>
 
-<button
-  onClick={() => sendCommand(device.id, "TURN_ON")}
->
-  TURN ON
-</button>
+              {state ? (
+                <>
+                  <p>
+                    Status:{" "}
+                    {state.actual_state === "ON"
+                      ? "🟢 ON"
+                      : "⚫ OFF"}
+                  </p>
 
-<button
-  onClick={() => sendCommand(device.id, "TURN_OFF")}
->
-  TURN OFF
-</button>
-          </div>
-        ))
+                  <button
+                    onClick={() => sendCommand(device.id, "TURN_ON")}
+                    disabled={state.actual_state === "ON"}
+                  >
+                    TURN ON
+                  </button>
+
+                  {" "}
+
+                  <button
+                    onClick={() => sendCommand(device.id, "TURN_OFF")}
+                    disabled={state.actual_state === "OFF"}
+                  >
+                    TURN OFF
+                  </button>
+                </>
+              ) : (
+                <p>Status: No state available</p>
+              )}
+            </div>
+          );
+        })
       )}
 
       <hr />
