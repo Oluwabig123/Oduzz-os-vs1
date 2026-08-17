@@ -91,3 +91,27 @@ export async function processPendingCommands() {
     }
   }
 }
+
+let hubRunning = false;
+
+export function startVirtualHub() {
+  if (hubRunning) {
+    return;
+  }
+
+  hubRunning = true;
+
+  console.log("🚀 Virtual Hub started");
+
+  processPendingCommands();
+
+  const interval = setInterval(() => {
+    processPendingCommands();
+  }, 2000);
+
+  return () => {
+    clearInterval(interval);
+    hubRunning = false;
+    console.log("🛑 Virtual Hub stopped");
+  };
+}
