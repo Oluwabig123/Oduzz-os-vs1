@@ -148,6 +148,40 @@ function Devices() {
     }
   }, [selectedRoom]);
 
+  useEffect(() => {
+  if (!selectedRoom) {
+    return;
+  }
+
+  const channel = supabase
+    .channel(`device-states-${selectedRoom}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "device_states",
+      },
+      (payload) => {
+        console.log("Realtime device state:", payload);
+
+        const updatedState = payload.new as DeviceState;
+
+        if (updatedState?.device_id) {
+          setDeviceStates((currentStates) => ({
+            ...currentStates,
+            [updatedState.device_id]: updatedState,
+          }));
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [selectedRoom]);
+
   async function sendCommand(
     deviceId: string,
     command: "TURN_ON" | "TURN_OFF"
