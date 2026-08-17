@@ -22,7 +22,6 @@ export async function processPendingCommands() {
       `Virtual Hub: Processing ${command.command} for device ${command.device_id}`
     );
 
-    // Update desired state
     let desiredState: string;
 
     if (command.command === "TURN_ON") {
@@ -34,6 +33,7 @@ export async function processPendingCommands() {
       continue;
     }
 
+    // 1. Update desired state
     const { error: desiredStateError } = await supabase
       .from("device_states")
       .update({
@@ -50,10 +50,10 @@ export async function processPendingCommands() {
       continue;
     }
 
-    // Simulate the physical device responding
+    // 2. Simulate physical device response
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Update actual state
+    // 3. Update actual state
     const { error: actualStateError } = await supabase
       .from("device_states")
       .update({
@@ -70,7 +70,30 @@ export async function processPendingCommands() {
       continue;
     }
 
-    // Mark command as completed
+    // 4. Record activity
+    const { data: activityData, error: activityError } = await supabase
+      .from("device_activity")
+      .insert({
+        device_id: command.device_id,
+        command: command.command,
+        result: "success",
+      })
+      .select();
+
+    if (activityError) {
+      console.error(
+        "❌ Error recording device activity:",
+        activityError
+      );
+      continue;
+    }
+
+    console.log(
+      "✅ Device activity recorded:",
+      activityData
+    );
+
+    // 5. Mark command completed
     const { error: commandError } = await supabase
       .from("device_commands")
       .update({
@@ -84,11 +107,12 @@ export async function processPendingCommands() {
         "Error completing command:",
         commandError
       );
-    } else {
-      console.log(
-        `Virtual Hub: ${command.command} completed successfully.`
-      );
+      continue;
     }
+
+    console.log(
+      `Virtual Hub: ${command.command} completed successfully.`
+    );
   }
 }
 

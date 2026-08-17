@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
-import { processPendingCommands } from "../../hub/virtualHub";
+
 
 type Home = {
   id: string;
@@ -269,13 +269,7 @@ function Devices() {
     setSaving(false);
   }
 
-  async function handleProcessCommands() {
-    await processPendingCommands();
 
-    if (selectedRoom) {
-      await loadDevices(selectedRoom);
-    }
-  }
 
   if (loading) {
     return <p style={{ padding: "2rem" }}>Loading...</p>;
@@ -287,9 +281,6 @@ function Devices() {
 
       <h2>Devices</h2>
 
-      <button onClick={handleProcessCommands}>
-        Process Pending Commands
-      </button>
 
       <br />
       <br />
