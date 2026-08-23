@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
-
 type Home = {
   id: string;
   name: string;
@@ -29,12 +28,29 @@ type DeviceState = {
   updated_at: string;
 };
 
+type DeviceActivity = {
+  id: string;
+  device_id: string;
+  command: string;
+  result: string;
+  created_at: string;
+};
+
 function Devices() {
   const [homes, setHomes] = useState<Home[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+
   const [deviceStates, setDeviceStates] = useState<
     Record<string, DeviceState>
+  >({});
+
+  const [deviceActivity, setDeviceActivity] = useState<
+    Record<string, DeviceActivity[]>
+  >({});
+
+  const [pendingCommands, setPendingCommands] = useState<
+    Record<string, boolean>
   >({});
 
   const [selectedHome, setSelectedHome] = useState("");
@@ -105,11 +121,13 @@ function Devices() {
 
     if (loadedDevices.length === 0) {
       setDeviceStates({});
+      setDeviceActivity({});
       return;
     }
 
     const deviceIds = loadedDevices.map((device) => device.id);
 
+    // Load device states
     const { data: statesData, error: statesError } = await supabase
       .from("device_states")
       .select("*")
@@ -117,16 +135,43 @@ function Devices() {
 
     if (statesError) {
       console.error("Error loading device states:", statesError);
+    } else {
+      const statesMap: Record<string, DeviceState> = {};
+
+      (statesData ?? []).forEach((state) => {
+        statesMap[state.device_id] = state;
+      });
+
+      setDeviceStates(statesMap);
+    }
+
+    // Load device activity
+    const { data: activityData, error: activityError } = await supabase
+      .from("device_activity")
+      .select("*")
+      .in("device_id", deviceIds)
+      .order("created_at", { ascending: false });
+
+    if (activityError) {
+      console.error("Error loading device activity:", activityError);
       return;
     }
 
-    const statesMap: Record<string, DeviceState> = {};
+    const activityMap: Record<string, DeviceActivity[]> = {};
 
-    (statesData ?? []).forEach((state) => {
-      statesMap[state.device_id] = state;
+    deviceIds.forEach((deviceId) => {
+      activityMap[deviceId] = [];
     });
 
-    setDeviceStates(statesMap);
+    (activityData ?? []).forEach((activity) => {
+      if (!activityMap[activity.device_id]) {
+        activityMap[activity.device_id] = [];
+      }
+
+      activityMap[activity.device_id].push(activity);
+    });
+
+    setDeviceActivity(activityMap);
   }
 
   useEffect(() => {
@@ -145,65 +190,236 @@ function Devices() {
     } else {
       setDevices([]);
       setDeviceStates({});
+      setDeviceActivity({});
     }
   }, [selectedRoom]);
 
+  // Realtime updates
   useEffect(() => {
-  if (!selectedRoom) {
-    return;
-  }
+    if (!selectedRoom) {
+      return;
+    }
 
-  const channel = supabase
-    .channel(`device-states-${selectedRoom}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "device_states",
-      },
-      (payload) => {
-        console.log("Realtime device state:", payload);
+    const channel = supabase
+      .channel(`device-realtime-${selectedRoom}`)
 
-        const updatedState = payload.new as DeviceState;
+      // Device state realtime updates
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "device_states",
+        },
+        async (payload) => {
+          console.log("Realtime device state:", payload);
 
-        if (updatedState?.device_id) {
+          const updatedState = payload.new as DeviceState;
+
+          if (!updatedState?.device_id) {
+            return;
+          }
+
+          // Update immediately from realtime event
           setDeviceStates((currentStates) => ({
             ...currentStates,
             [updatedState.device_id]: updatedState,
           }));
-        }
-      }
-    )
-    .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [selectedRoom]);
+          // Then fetch the latest state from Supabase
+          const { data, error } = await supabase
+            .from("device_states")
+            .select("*")
+            .eq("device_id", updatedState.device_id)
+            .maybeSingle();
+
+          if (error) {
+            console.error(
+              "Error refreshing device state:",
+              error
+            );
+            return;
+          }
+
+          if (data) {
+            setDeviceStates((currentStates) => ({
+              ...currentStates,
+              [data.device_id]: data,
+            }));
+
+            // Device has reached its actual state.
+            // Allow another command.
+            setPendingCommands((currentPending) => ({
+              ...currentPending,
+              [data.device_id]: false,
+            }));
+          }
+        }
+      )
+
+      // Device activity realtime updates
+      // Device activity realtime updates
+        .on(
+        "postgres_changes",
+        {
+            event: "INSERT",
+            schema: "public",
+            table: "device_activity",
+        },
+        (payload) => {
+            console.log("Realtime device activity:", payload);
+
+            const newActivity = payload.new as DeviceActivity;
+
+            if (!newActivity?.id || !newActivity?.device_id) {
+            return;
+            }
+
+            setDeviceActivity((currentActivity) => {
+            const existingActivities =
+                currentActivity[newActivity.device_id] ?? [];
+
+            // Prevent duplicate activity entries
+            const alreadyExists = existingActivities.some(
+                (activity) => activity.id === newActivity.id
+            );
+
+            if (alreadyExists) {
+                return currentActivity;
+            }
+
+            return {
+                ...currentActivity,
+                [newActivity.device_id]: [
+                newActivity,
+                ...existingActivities,
+                ],
+            };
+            });
+        }
+        )   
+
+      .subscribe((status) => {
+        console.log(
+          `Device realtime subscription status: ${status}`
+        );
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedRoom]);
 
   async function sendCommand(
-    deviceId: string,
-    command: "TURN_ON" | "TURN_OFF"
-  ) {
-    const { error } = await supabase
-      .from("device_commands")
-      .insert([
-        {
-          device_id: deviceId,
-          command,
-          status: "pending",
-        },
-      ]);
+  deviceId: string,
+  command: "TURN_ON" | "TURN_OFF"
+) {
+  // Prevent duplicate commands
+  if (pendingCommands[deviceId]) {
+    console.log(
+      `Command already pending for device ${deviceId}`
+    );
+    return;
+  }
 
-    if (error) {
-      console.error("Command error:", error);
-      alert(error.message);
-      return;
+  const expectedState =
+    command === "TURN_ON" ? "ON" : "OFF";
+
+  // Lock the buttons immediately
+  setPendingCommands((currentPending) => ({
+    ...currentPending,
+    [deviceId]: true,
+  }));
+
+  const { error } = await supabase
+    .from("device_commands")
+    .insert([
+      {
+        device_id: deviceId,
+        command,
+        status: "pending",
+      },
+    ]);
+
+  if (error) {
+    console.error("Command error:", error);
+
+    setPendingCommands((currentPending) => ({
+      ...currentPending,
+      [deviceId]: false,
+    }));
+
+    alert(error.message);
+    return;
+  }
+
+  console.log(`Command sent: ${command}`);
+
+  // Wait for the Virtual Hub to update the device state.
+  // We check Supabase directly instead of relying only
+  // on the realtime event.
+  const maxAttempts = 15;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((resolve) =>
+      setTimeout(resolve, 500)
+    );
+
+    const { data: latestState, error: stateError } =
+      await supabase
+        .from("device_states")
+        .select("*")
+        .eq("device_id", deviceId)
+        .maybeSingle();
+
+    if (stateError) {
+      console.error(
+        "Error checking device state:",
+        stateError
+      );
+      continue;
     }
 
-    alert(`Command sent: ${command}`);
+    if (!latestState) {
+      continue;
+    }
+
+    console.log(
+      `Device state check ${attempt + 1}:`,
+      latestState.actual_state
+    );
+
+    // Update the UI immediately
+    setDeviceStates((currentStates) => ({
+      ...currentStates,
+      [deviceId]: latestState,
+    }));
+
+    // Command has reached the expected physical state
+    if (latestState.actual_state === expectedState) {
+      console.log(
+        `Device ${deviceId} reached ${expectedState}`
+      );
+
+      setPendingCommands((currentPending) => ({
+        ...currentPending,
+        [deviceId]: false,
+      }));
+
+      return;
+    }
   }
+
+  // Safety fallback
+  console.warn(
+    `Device ${deviceId} did not reach ${expectedState} within the expected time.`
+  );
+
+  setPendingCommands((currentPending) => ({
+    ...currentPending,
+    [deviceId]: false,
+  }));
+}
 
   async function createDevice() {
     if (!selectedRoom) {
@@ -269,8 +485,6 @@ function Devices() {
     setSaving(false);
   }
 
-
-
   if (loading) {
     return <p style={{ padding: "2rem" }}>Loading...</p>;
   }
@@ -281,8 +495,6 @@ function Devices() {
 
       <h2>Devices</h2>
 
-
-      <br />
       <br />
 
       <label>Home</label>
@@ -325,6 +537,8 @@ function Devices() {
       ) : (
         devices.map((device) => {
           const state = deviceStates[device.id];
+          const activities = deviceActivity[device.id] ?? [];
+          const isPending = pendingCommands[device.id] ?? false;
 
           return (
             <div
@@ -355,20 +569,62 @@ function Devices() {
                   </p>
 
                   <button
-                    onClick={() => sendCommand(device.id, "TURN_ON")}
-                    disabled={state.actual_state === "ON"}
+                    onClick={() =>
+                      sendCommand(device.id, "TURN_ON")
+                    }
+                    disabled={
+                      state.actual_state === "ON" || isPending
+                    }
                   >
-                    TURN ON
+                    {isPending && state.actual_state !== "ON"
+                      ? "TURNING ON..."
+                      : "TURN ON"}
                   </button>
 
                   {" "}
 
                   <button
-                    onClick={() => sendCommand(device.id, "TURN_OFF")}
-                    disabled={state.actual_state === "OFF"}
+                    onClick={() =>
+                      sendCommand(device.id, "TURN_OFF")
+                    }
+                    disabled={
+                      state.actual_state === "OFF" || isPending
+                    }
                   >
-                    TURN OFF
+                    {isPending && state.actual_state !== "OFF"
+                      ? "TURNING OFF..."
+                      : "TURN OFF"}
                   </button>
+
+                  <hr />
+
+                  <h4>Activity</h4>
+
+                  {activities.length === 0 ? (
+                    <p>No activity yet.</p>
+                  ) : (
+                    <div>
+                      {activities.slice(0, 5).map((activity) => (
+                        <p key={activity.id}>
+                          {activity.command === "TURN_ON"
+                            ? "🟢"
+                            : "⚫"}{" "}
+                          {activity.command === "TURN_ON"
+                            ? "Turned ON"
+                            : "Turned OFF"}{" "}
+                          —{" "}
+                          {new Date(
+                            activity.created_at
+                          ).toLocaleTimeString("en-NG", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            second: "2-digit",
+                            hour12: true,
+                          })}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </>
               ) : (
                 <p>Status: No state available</p>
