@@ -1,0 +1,303 @@
+/* =================================
+   ODUZZ OS — Voice Control
+   ================================= */
+
+.voice-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+/* Header */
+
+.voice-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.voice-header h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 750;
+}
+
+.voice-header p {
+  margin: 6px 0 0;
+  color: #687386;
+  font-size: 15px;
+}
+
+/* Status */
+
+.voice-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 15px;
+  border-radius: 999px;
+  background: #f1f3f7;
+  color: #5f6878;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.voice-status-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8993a3;
+}
+
+.voice-status.listening {
+  background: #fff4e8;
+  color: #a85d00;
+}
+
+.voice-status.listening .voice-status-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 5px rgba(245, 158, 11, 0.12);
+}
+
+/* Main voice card */
+
+.voice-card {
+  max-width: 760px;
+  margin: 0 auto 28px;
+  padding: 42px 30px;
+  background: #ffffff;
+  border: 1px solid #e1e6ef;
+  border-radius: 22px;
+  box-shadow: 0 8px 28px rgba(20, 32, 55, 0.06);
+  text-align: center;
+}
+
+.voice-microphone {
+  width: 82px;
+  height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  background: #eef2ff;
+  font-size: 38px;
+}
+
+.voice-card h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.voice-description {
+  margin: 10px 0 14px;
+  color: #687386;
+}
+
+.voice-examples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 26px;
+}
+
+.voice-examples span {
+  padding: 8px 11px;
+  border-radius: 9px;
+  background: #f4f6fa;
+  color: #5f6878;
+  font-size: 13px;
+}
+
+/* Voice button */
+
+.voice-button {
+  min-width: 190px;
+  padding: 14px 22px;
+  border: none;
+  border-radius: 11px;
+  background: #172b4d;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.voice-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.voice-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.voice-button.voice-stop {
+  background: #9b2c2c;
+}
+
+/* Transcript */
+
+.voice-transcript {
+  margin-top: 30px;
+  padding: 18px;
+  border: 1px solid #e1e6ef;
+  border-radius: 13px;
+  background: #f8faff;
+  text-align: left;
+}
+
+.voice-transcript span {
+  display: block;
+  margin-bottom: 7px;
+  color: #7b8494;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.voice-transcript p {
+  min-height: 22px;
+  margin: 0;
+  color: #172033;
+  font-size: 14px;
+}
+
+/* Message */
+
+.voice-message {
+  margin-top: 15px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #eef6ff;
+  color: #31527a;
+  font-size: 13px;
+}
+
+/* Devices */
+
+.voice-devices {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #e1e6ef;
+  border-radius: 19px;
+  box-shadow: 0 5px 20px rgba(20, 32, 55, 0.05);
+}
+
+.voice-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+
+.voice-section-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.voice-section-header span {
+  color: #7b8494;
+  font-size: 13px;
+}
+
+/* Device list */
+
+.voice-device-list {
+  display: grid;
+  gap: 10px;
+}
+
+.voice-device {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 15px;
+  border: 1px solid #edf0f5;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.voice-device > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.voice-device strong {
+  font-size: 14px;
+}
+
+.voice-device span {
+  color: #7b8494;
+  font-size: 12px;
+}
+
+.voice-device-type {
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: #f1f3f7;
+  color: #5f6878 !important;
+  font-size: 11px !important;
+  text-transform: capitalize;
+}
+
+/* Empty */
+
+.voice-empty {
+  padding: 30px;
+  border: 1px dashed #d7deea;
+  border-radius: 12px;
+  text-align: center;
+  color: #7b8494;
+}
+
+/* Mobile */
+
+@media (max-width: 650px) {
+  .voice-page {
+    padding: 20px;
+  }
+
+  .voice-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .voice-header h1 {
+    font-size: 27px;
+  }
+
+  .voice-card {
+    padding: 32px 20px;
+  }
+
+  .voice-card h2 {
+    font-size: 21px;
+  }
+
+  .voice-examples {
+    flex-direction: column;
+  }
+
+  .voice-examples span {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .voice-device {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

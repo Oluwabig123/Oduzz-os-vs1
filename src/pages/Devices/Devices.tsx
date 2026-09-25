@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import "./Devices.css";
 
 type Home = {
   id: string;
@@ -529,111 +530,209 @@ function Devices() {
           </option>
         ))}
       </select>
+        <h3 className="section-title">Devices in this Room</h3>
 
-      <h3>Devices in this Room</h3>
+        {devices.length === 0 ? (
+        <div className="empty-devices">
+            <p>No devices found in this room.</p>
+        </div>
+        ) : (
+        <div className="devices-grid">
+            {devices.map((device) => {
+            const state = deviceStates[device.id];
+            const activities = deviceActivity[device.id] ?? [];
+            const isPending = pendingCommands[device.id] ?? false;
 
-      {devices.length === 0 ? (
-        <p>No devices found.</p>
-      ) : (
-        devices.map((device) => {
-          const state = deviceStates[device.id];
-          const activities = deviceActivity[device.id] ?? [];
-          const isPending = pendingCommands[device.id] ?? false;
+            const getDeviceIcon = () => {
+                switch (device.device_type) {
+                case "light":
+                    return "💡";
+                case "fan":
+                    return "🌀";
+                case "socket":
+                    return "🔌";
+                case "ac":
+                    return "❄️";
+                case "tv":
+                    return "📺";
+                default:
+                    return "⚡";
+                }
+            };
 
-          return (
-            <div
-              key={device.id}
-              style={{
-                border: "1px solid #ccc",
-                padding: "1rem",
-                marginBottom: "1rem",
-                borderRadius: "8px",
-              }}
-            >
-              <h3>
-                {device.device_type === "light" ? "💡" : "🔌"}{" "}
-                {device.name}
-              </h3>
+            const isOn = state?.actual_state === "ON";
 
-              <p>Type: {device.device_type}</p>
+            return (
+                <div className="device-card" key={device.id}>
+                {/* Device Header */}
+                <div className="device-card-header">
+                    <div className="device-title">
+                    <div className="device-icon">
+                        {getDeviceIcon()}
+                    </div>
 
-              <p>UID: {device.device_uid}</p>
-
-              {state ? (
-                <>
-                  <p>
-                    Status:{" "}
-                    {state.actual_state === "ON"
-                      ? "🟢 ON"
-                      : "⚫ OFF"}
-                  </p>
-
-                  <button
-                    onClick={() =>
-                      sendCommand(device.id, "TURN_ON")
-                    }
-                    disabled={
-                      state.actual_state === "ON" || isPending
-                    }
-                  >
-                    {isPending && state.actual_state !== "ON"
-                      ? "TURNING ON..."
-                      : "TURN ON"}
-                  </button>
-
-                  {" "}
-
-                  <button
-                    onClick={() =>
-                      sendCommand(device.id, "TURN_OFF")
-                    }
-                    disabled={
-                      state.actual_state === "OFF" || isPending
-                    }
-                  >
-                    {isPending && state.actual_state !== "OFF"
-                      ? "TURNING OFF..."
-                      : "TURN OFF"}
-                  </button>
-
-                  <hr />
-
-                  <h4>Activity</h4>
-
-                  {activities.length === 0 ? (
-                    <p>No activity yet.</p>
-                  ) : (
                     <div>
-                      {activities.slice(0, 5).map((activity) => (
-                        <p key={activity.id}>
-                          {activity.command === "TURN_ON"
+                        <h3 className="device-name">
+                        {device.name}
+                        </h3>
+
+                        <p className="device-type">
+                        {device.device_type}
+                        </p>
+                    </div>
+                    </div>
+                </div>
+
+                {/* Device Status */}
+                <div className="device-status">
+                    <span className="status-label">
+                    Current Status
+                    </span>
+
+                    <span
+                    className={`status-value ${
+                        isOn ? "status-on" : "status-off"
+                    }`}
+                    >
+                    {isPending
+                        ? state?.actual_state === "ON"
+                        ? "TURNING OFF..."
+                        : "TURNING ON..."
+                        : isOn
+                        ? "🟢 ON"
+                        : "⚫ OFF"}
+                    </span>
+                </div>
+
+                {/* Controls */}
+                {state ? (
+                    <div className="device-controls">
+                    <button
+                        className="btn-on"
+                        onClick={() =>
+                        sendCommand(device.id, "TURN_ON")
+                        }
+                        disabled={isOn || isPending}
+                    >
+                        {isPending && !isOn
+                        ? "TURNING ON..."
+                        : "TURN ON"}
+                    </button>
+
+                    <button
+                        className="btn-off"
+                        onClick={() =>
+                        sendCommand(device.id, "TURN_OFF")
+                        }
+                        disabled={!isOn || isPending}
+                    >
+                        {isPending && isOn
+                        ? "TURNING OFF..."
+                        : "TURN OFF"}
+                    </button>
+                    </div>
+                ) : (
+                    <p>Status: No state available</p>
+                )}
+
+                {/* Device UID */}
+                <div className="device-uid">
+                    <strong>Device UID:</strong>{" "}
+                    {device.device_uid}
+                </div>
+
+                {/* Activity */}
+                <div className="device-activity">
+                    <h4>Recent Activity</h4>
+
+                    {activities.length === 0 ? (
+                    <p>No activity yet.</p>
+                    ) : (
+                    activities.slice(0, 5).map((activity) => (
+                        <div
+                        className="activity-item"
+                        key={activity.id}
+                        >
+                        <span>
+                            {activity.command === "TURN_ON"
                             ? "🟢"
                             : "⚫"}{" "}
-                          {activity.command === "TURN_ON"
+                            {activity.command === "TURN_ON"
                             ? "Turned ON"
-                            : "Turned OFF"}{" "}
-                          —{" "}
-                          {new Date(
+                            : "Turned OFF"}
+                        </span>
+
+                        <span className="activity-time">
+                            {new Date(
                             activity.created_at
-                          ).toLocaleTimeString("en-NG", {
+                            ).toLocaleTimeString("en-NG", {
                             hour: "2-digit",
                             minute: "2-digit",
                             second: "2-digit",
                             hour12: true,
-                          })}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p>Status: No state available</p>
-              )}
-            </div>
-          );
-        })
-      )}
+                            })}
+                        </span>
+                        </div>
+                    ))
+                    )}
+                </div>
+                </div>
+            );
+            })}
+        </div>
+        )}
 
+        <hr />
+
+        <div className="add-device">
+        <h3>Add Device</h3>
+
+        <div className="add-device-form">
+            <label>Device Name</label>
+
+            <input
+            type="text"
+            placeholder="Living Room Light"
+            value={deviceName}
+            onChange={(e) =>
+                setDeviceName(e.target.value)
+            }
+            />
+
+            <label>Device Type</label>
+
+            <select
+            value={deviceType}
+            onChange={(e) =>
+                setDeviceType(e.target.value)
+            }
+            >
+            <option value="light">Light</option>
+            <option value="fan">Fan</option>
+            <option value="socket">Socket</option>
+            <option value="ac">Air Conditioner</option>
+            <option value="tv">TV</option>
+            </select>
+
+            <label>Device UID</label>
+
+            <input
+            type="text"
+            placeholder="ODUZZ-H001-R01"
+            value={deviceUid}
+            onChange={(e) =>
+                setDeviceUid(e.target.value)
+            }
+            />
+
+            <button
+            onClick={createDevice}
+            disabled={saving}
+            >
+            {saving ? "Saving..." : "Add Device"}
+            </button>
+        </div>
+        </div>
       <hr />
 
       <h3>Add Device</h3>
