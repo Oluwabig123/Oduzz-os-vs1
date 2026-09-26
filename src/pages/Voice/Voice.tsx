@@ -321,6 +321,39 @@ function Voice() {
       }...`
     );
 
+    // Trigger Virtual Hub & wait for completion
+    try {
+      const { processPendingCommands } = await import("../../hub/virtualHub");
+      await processPendingCommands();
+
+      const expectedState = command === "TURN_ON" ? "ON" : "OFF";
+      const maxAttempts = 10;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const { data: latestState } = await supabase
+          .from("device_states")
+          .select("actual_state")
+          .eq("device_id", device.id)
+          .maybeSingle();
+
+        if (latestState?.actual_state === expectedState) {
+          setMessage(
+            `Successfully ${
+              command === "TURN_ON" ? "turned on" : "turned off"
+            } ${device.name}.`
+          );
+          setProcessing(false);
+          return;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    } catch (err) {
+      console.error("Error processing command state update:", err);
+    }
+
+    setMessage(
+      `Command sent for ${device.name}.`
+    );
     setProcessing(false);
   }
 
