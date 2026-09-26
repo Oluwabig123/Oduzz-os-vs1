@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { speakText, stopSpeech } from "../../lib/tts";
+import { parseVoiceIntent } from "../../lib/aiVoiceParser";
 import "./Voice.css";
 
 type Room = {
@@ -47,6 +49,7 @@ function Voice() {
   const [message, setMessage] = useState("");
   const [processing, setProcessing] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("en-US");
+  const [ttsEnabled, setTtsEnabled] = useState(true);
   const [lastCommandTime, setLastCommandTime] = useState<string | null>(null);
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
@@ -56,6 +59,7 @@ function Voice() {
 
     return () => {
       recognitionRef.current?.abort();
+      stopSpeech();
     };
   }, []);
 
@@ -92,13 +96,15 @@ function Voice() {
   }
 
   function startListening() {
+    stopSpeech(); // Stop any ongoing TTS audio before listening
+
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setMessage(
-        "Speech recognition is not supported in this browser. Try Google Chrome."
-      );
+      const err = "Speech recognition is not supported in this browser. Try Google Chrome.";
+      setMessage(err);
+      speakText(err, { lang: selectedLanguage, enabled: ttsEnabled });
       return;
     }
 
@@ -144,11 +150,12 @@ function Voice() {
       console.error("❌ Speech recognition error:", event);
       setListening(false);
 
+      let errMsg = `Voice error: ${event.error}`;
       if (event.error === "not-allowed") {
-        setMessage("Microphone permission was denied. Please allow microphone access.");
-      } else {
-        setMessage(`Voice error: ${event.error}`);
+        errMsg = "Microphone permission was denied. Please allow microphone access.";
       }
+      setMessage(errMsg);
+      speakText(errMsg, { lang: selectedLanguage, enabled: ttsEnabled });
     };
 
     recognition.onend = () => {
@@ -177,144 +184,159 @@ function Voice() {
     }
 
     setProcessing(true);
-    setMessage("Processing speech input...");
+    setMessage("Analyzing voice intent...");
 
-    const commandText = text.toLowerCase().trim();
+    const intent = parseVoiceIntent(text, devices, rooms);
 
-    let command: "TURN_ON" | "TURN_OFF" | null = null;
-
-    if (
-      commandText.includes("turn on") ||
-      commandText.includes("switch on") ||
-      (commandText.includes("switch the") && commandText.includes("on"))
-    ) {
-      command = "TURN_ON";
-    }
-
-    if (
-      commandText.includes("turn off") ||
-      commandText.includes("switch off") ||
-      (commandText.includes("switch the") && commandText.includes("off"))
-    ) {
-      command = "TURN_OFF";
-    }
-
-    if (!command) {
-      setMessage('Command unrecognized. Try saying "Turn on living room light".');
+    if (!intent) {
+      const fallbackMsg = 'Command unrecognized. Try saying "Turn on living room light" or "Is bedroom fan on?".';
+      setMessage(fallbackMsg);
+      speakText(fallbackMsg, { lang: selectedLanguage, enabled: ttsEnabled });
       setProcessing(false);
       return;
     }
 
-    const device = findDevice(commandText);
+    // Handle Global Status Query
+    if (intent.type === "QUERY_GLOBAL_ON") {
+      const { data: states } = await supabase.from("device_states").select("*");
+      const onDeviceIds = (states || [])
+        .filter((s) => s.actual_state === "ON")
+        .map((s) => s.device_id);
 
-    if (!device) {
-      setMessage("No matching target device recognized in speech.");
+      const activeDevices = devices.filter((d) => onDeviceIds.includes(d.id));
+
+      let queryReply = "";
+      if (activeDevices.length === 0) {
+        queryReply = "All devices are currently turned off.";
+      } else {
+        const names = activeDevices.map((d) => d.name).join(", ");
+        queryReply = `The following ${activeDevices.length} device${
+          activeDevices.length === 1 ? " is" : "s are"
+        } currently on: ${names}.`;
+      }
+
+      setMessage(queryReply);
+      speakText(queryReply, { lang: selectedLanguage, enabled: ttsEnabled });
+      setLastCommandTime(new Date().toLocaleTimeString());
       setProcessing(false);
       return;
     }
 
-    const { error } = await supabase
-      .from("device_commands")
-      .insert({
-        device_id: device.id,
-        command,
+    // Handle Specific Device Query
+    if (intent.type === "QUERY_DEVICE") {
+      const { data: stateData } = await supabase
+        .from("device_states")
+        .select("actual_state")
+        .eq("device_id", intent.deviceId)
+        .maybeSingle();
+
+      const currentState = stateData?.actual_state || "OFF";
+      const reply = `The ${intent.deviceName} is currently turned ${currentState.toLowerCase()}.`;
+
+      setMessage(reply);
+      speakText(reply, { lang: selectedLanguage, enabled: ttsEnabled });
+      setLastCommandTime(new Date().toLocaleTimeString());
+      setProcessing(false);
+      return;
+    }
+
+    // Handle Bulk Room Command
+    if (intent.type === "CONTROL_ROOM_BULK") {
+      if (intent.deviceIds.length === 0) {
+        const emptyMsg = `No devices found in the ${intent.roomName}.`;
+        setMessage(emptyMsg);
+        speakText(emptyMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+        setProcessing(false);
+        return;
+      }
+
+      const actionText = intent.command === "TURN_ON" ? "Turning on" : "Turning off";
+      const startMsg = `${actionText} all devices in ${intent.roomName}...`;
+      setMessage(startMsg);
+      speakText(startMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+
+      const commandRows = intent.deviceIds.map((devId) => ({
+        device_id: devId,
+        command: intent.command,
+        status: "pending",
+      }));
+
+      await supabase.from("device_commands").insert(commandRows);
+
+      try {
+        const { processPendingCommands } = await import("../../hub/virtualHub");
+        await processPendingCommands();
+      } catch (err) {
+        console.error("Error executing bulk command:", err);
+      }
+
+      const successMsg = `Successfully ${
+        intent.command === "TURN_ON" ? "turned on" : "turned off"
+      } all devices in ${intent.roomName}.`;
+      setMessage(successMsg);
+      speakText(successMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      setLastCommandTime(new Date().toLocaleTimeString());
+      setProcessing(false);
+      return;
+    }
+
+    // Handle Single Device Control
+    if (intent.type === "CONTROL_SINGLE") {
+      const actionText = intent.command === "TURN_ON" ? "Turning on" : "Turning off";
+      const startMsg = `${actionText} ${intent.deviceName}...`;
+      setMessage(startMsg);
+      speakText(startMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+
+      const { error } = await supabase.from("device_commands").insert({
+        device_id: intent.deviceId,
+        command: intent.command,
         status: "pending",
       });
 
-    if (error) {
-      setMessage("Unable to transmit voice command.");
+      if (error) {
+        const errReply = "Unable to transmit command to device.";
+        setMessage(errReply);
+        speakText(errReply, { lang: selectedLanguage, enabled: ttsEnabled });
+        setProcessing(false);
+        return;
+      }
+
+      try {
+        const { processPendingCommands } = await import("../../hub/virtualHub");
+        await processPendingCommands();
+
+        const expectedState = intent.command === "TURN_ON" ? "ON" : "OFF";
+        const maxAttempts = 10;
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          const { data: latestState } = await supabase
+            .from("device_states")
+            .select("actual_state")
+            .eq("device_id", intent.deviceId)
+            .maybeSingle();
+
+          if (latestState?.actual_state === expectedState) {
+            const successMsg = `Successfully ${
+              intent.command === "TURN_ON" ? "turned on" : "turned off"
+            } ${intent.deviceName}.`;
+            setMessage(successMsg);
+            speakText(successMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+            setLastCommandTime(new Date().toLocaleTimeString());
+            setProcessing(false);
+            return;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } catch (err) {
+        console.error("Error processing command state update:", err);
+      }
+
+      const sentMsg = `Command sent for ${intent.deviceName}.`;
+      setMessage(sentMsg);
+      speakText(sentMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      setLastCommandTime(new Date().toLocaleTimeString());
       setProcessing(false);
-      return;
     }
-
-    setMessage(
-      `${command === "TURN_ON" ? "Turning on" : "Turning off"} ${device.name}...`
-    );
-
-    try {
-      const { processPendingCommands } = await import("../../hub/virtualHub");
-      await processPendingCommands();
-
-      const expectedState = command === "TURN_ON" ? "ON" : "OFF";
-      const maxAttempts = 10;
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const { data: latestState } = await supabase
-          .from("device_states")
-          .select("actual_state")
-          .eq("device_id", device.id)
-          .maybeSingle();
-
-        if (latestState?.actual_state === expectedState) {
-          setMessage(
-            `Successfully ${command === "TURN_ON" ? "turned on" : "turned off"} ${device.name}.`
-          );
-          setLastCommandTime(new Date().toLocaleTimeString());
-          setProcessing(false);
-          return;
-        }
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    } catch (err) {
-      console.error("Error processing command state update:", err);
-    }
-
-    setLastCommandTime(new Date().toLocaleTimeString());
-    setMessage(`Command sent for ${device.name}.`);
-    setProcessing(false);
-  }
-
-  function findDevice(commandText: string): Device | null {
-    const normalizedText = commandText.toLowerCase().trim();
-
-    const exactMatch = devices.find((device) =>
-      normalizedText.includes(device.name.toLowerCase())
-    );
-
-    if (exactMatch) {
-      return exactMatch;
-    }
-
-    for (const device of devices) {
-      const room = rooms.find((room) => room.id === device.room_id);
-      if (!room) continue;
-
-      const roomName = room.name.toLowerCase();
-      const deviceName = device.name.toLowerCase();
-
-      if (normalizedText.includes(roomName) && normalizedText.includes(deviceName)) {
-        return device;
-      }
-    }
-
-    const stopWords = new Set(["turn", "switch", "on", "off", "the", "a", "an", "please", "light", "device"]);
-    const words = normalizedText
-      .split(/\s+/)
-      .filter((w) => !stopWords.has(w));
-
-    let bestDevice: Device | null = null;
-    let bestScore = 0;
-
-    for (const device of devices) {
-      const room = rooms.find((r) => r.id === device.room_id);
-      const roomWords = room ? room.name.toLowerCase().split(/\s+/) : [];
-      const deviceWords = device.name.toLowerCase().split(/\s+/);
-      const targetWords = [...roomWords, ...deviceWords].filter((w) => !stopWords.has(w));
-
-      let score = 0;
-      for (const word of words) {
-        if (targetWords.includes(word)) {
-          score++;
-        }
-      }
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestDevice = device;
-      }
-    }
-
-    return bestScore > 0 ? bestDevice : null;
   }
 
   return (
@@ -348,7 +370,7 @@ function Voice() {
             : "Tap to Control"}
         </h1>
         <p className="soothing-subtitle">
-          Say "Turn on living room light" or "Switch off bedroom fan"
+          Try "Turn off everything in bedroom" or "Is kitchen light on?"
         </p>
 
         {/* Action Button */}
@@ -400,8 +422,13 @@ function Voice() {
             </div>
 
             <div className="param-card">
-              <span className="param-label">Input Sensitivity</span>
-              <span className="param-value">Auto-Calibrated</span>
+              <span className="param-label">Voice Feedback (TTS)</span>
+              <button
+                className={`tts-toggle-btn ${ttsEnabled ? "enabled" : "disabled"}`}
+                onClick={() => setTtsEnabled(!ttsEnabled)}
+              >
+                {ttsEnabled ? "🔊 Enabled" : "🔇 Muted"}
+              </button>
             </div>
 
             <div className="param-card">
