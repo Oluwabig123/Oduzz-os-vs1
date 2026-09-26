@@ -52,21 +52,27 @@ function Voice() {
 
   useEffect(() => {
     loadDevices();
+
+    return () => {
+      recognitionRef.current?.abort();
+    };
   }, []);
 
   async function loadDevices() {
-    const [{ data: deviceData, error: deviceError }, { data: roomData }] =
-      await Promise.all([
-        supabase
-          .from("devices")
-          .select("id, room_id, name, device_type")
-          .order("created_at", { ascending: true }),
+    const [
+      { data: deviceData, error: deviceError },
+      { data: roomData, error: roomError },
+    ] = await Promise.all([
+      supabase
+        .from("devices")
+        .select("id, room_id, name, device_type")
+        .order("created_at", { ascending: true }),
 
-        supabase
-          .from("rooms")
-          .select("id, name")
-          .order("created_at", { ascending: true }),
-      ]);
+      supabase
+        .from("rooms")
+        .select("id, name")
+        .order("created_at", { ascending: true }),
+    ]);
 
     if (deviceError) {
       console.error("Error loading devices:", deviceError);
@@ -74,8 +80,17 @@ function Voice() {
       return;
     }
 
+    if (roomError) {
+      console.error("Error loading rooms:", roomError);
+      setMessage("Unable to load rooms.");
+      return;
+    }
+
     setDevices(deviceData || []);
     setRooms(roomData || []);
+
+    console.log("🎤 Voice devices loaded:", deviceData);
+    console.log("🎤 Voice rooms loaded:", roomData);
   }
 
   function startListening() {
@@ -90,6 +105,10 @@ function Voice() {
       return;
     }
 
+    if (processing) {
+      return;
+    }
+
     const recognition = new SpeechRecognition();
 
     recognition.continuous = false;
@@ -100,13 +119,19 @@ function Voice() {
       setListening(true);
       setMessage("Listening...");
       setTranscript("");
+
+      console.log("🎤 Speech recognition started");
     };
 
     recognition.onresult = (event: any) => {
       let finalTranscript = "";
       let interimTranscript = "";
 
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      for (
+        let i = event.resultIndex;
+        i < event.results.length;
+        i++
+      ) {
         const text = event.results[i][0].transcript;
 
         if (event.results[i].isFinal) {
@@ -121,13 +146,21 @@ function Voice() {
 
       setTranscript(currentTranscript);
 
+      console.log(
+        "🎤 Speech transcript:",
+        currentTranscript
+      );
+
       if (finalTranscript) {
         processVoiceCommand(finalTranscript);
       }
     };
 
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event);
+      console.error(
+        "❌ Speech recognition error:",
+        event
+      );
 
       setListening(false);
 
@@ -142,77 +175,145 @@ function Voice() {
 
     recognition.onend = () => {
       setListening(false);
+
+      console.log("🎤 Speech recognition ended");
     };
 
     recognitionRef.current = recognition;
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error(
+        "❌ Unable to start speech recognition:",
+        error
+      );
+
+      setListening(false);
+      setMessage("Unable to start voice recognition.");
+    }
   }
 
   function stopListening() {
     recognitionRef.current?.stop();
     setListening(false);
+
+    console.log("🎤 Speech recognition stopped");
   }
 
   async function processVoiceCommand(text: string) {
+    if (processing) {
+      return;
+    }
+
     setProcessing(true);
     setMessage("Understanding command...");
 
     const commandText = text.toLowerCase().trim();
 
+    console.log(
+      "🎤 Processing voice command:",
+      commandText
+    );
+
     let command: "TURN_ON" | "TURN_OFF" | null = null;
 
+    /*
+     * Detect TURN ON
+     */
     if (
       commandText.includes("turn on") ||
       commandText.includes("switch on") ||
-      commandText.includes("switch the") &&
-        commandText.includes("on")
+      (commandText.includes("switch the") &&
+        commandText.includes("on"))
     ) {
       command = "TURN_ON";
     }
 
+    /*
+     * Detect TURN OFF
+     */
     if (
       commandText.includes("turn off") ||
       commandText.includes("switch off") ||
-      commandText.includes("switch the") &&
-        commandText.includes("off")
+      (commandText.includes("switch the") &&
+        commandText.includes("off"))
     ) {
       command = "TURN_OFF";
     }
+
+    console.log("🎤 Detected command:", command);
 
     if (!command) {
       setMessage(
         'I could not understand the command. Try saying "turn on living room light".'
       );
+
       setProcessing(false);
       return;
     }
 
+    /*
+     * Find matching device
+     */
     const device = findDevice(commandText);
+
+    console.log("🎤 Matched device:", device);
 
     if (!device) {
       setMessage(
         "I could not find a matching device. Try mentioning the device name."
       );
+
       setProcessing(false);
       return;
     }
 
-    const { error } = await supabase
+    /*
+     * Create device command
+     */
+    console.log("🎤 Creating device command:", {
+      deviceId: device.id,
+      deviceName: device.name,
+      command,
+    });
+
+    const {
+      data: insertedCommand,
+      error,
+    } = await supabase
       .from("device_commands")
       .insert({
         device_id: device.id,
         command,
         status: "pending",
-      });
+      })
+      .select()
+      .single();
+
+    console.log("🎤 Voice command created:", {
+      command,
+      device: device.name,
+      deviceId: device.id,
+      insertedCommand,
+      error,
+    });
 
     if (error) {
-      console.error("Voice command error:", error);
+      console.error(
+        "❌ Voice command error:",
+        error
+      );
 
       setMessage("Unable to send the command.");
       setProcessing(false);
       return;
     }
+
+    console.log(
+      "🎤 Voice command is now pending:",
+      insertedCommand
+    );
 
     setMessage(
       `${command === "TURN_ON" ? "Turning on" : "Turning off"} ${
@@ -224,26 +325,37 @@ function Voice() {
   }
 
   function findDevice(commandText: string): Device | null {
-    const normalizedText = commandText.toLowerCase();
+    const normalizedText = commandText
+      .toLowerCase()
+      .trim();
 
     /*
-     * First try matching the device name.
+     * First try exact device-name matching.
+     *
+     * Example:
+     * "turn on living room light"
+     *
+     * Device:
+     * "Living Room Light"
      */
     const exactMatch = devices.find((device) =>
-      normalizedText.includes(device.name.toLowerCase())
+      normalizedText.includes(
+        device.name.toLowerCase()
+      )
     );
 
     if (exactMatch) {
+      console.log(
+        "🎤 Device matched by exact name:",
+        exactMatch
+      );
+
       return exactMatch;
     }
 
     /*
-     * Try matching room + device.
-     *
-     * Example:
-     * "turn on living room light"
+     * Try room + device matching.
      */
-
     for (const device of devices) {
       const room = rooms.find(
         (room) => room.id === device.room_id
@@ -258,14 +370,18 @@ function Voice() {
         normalizedText.includes(roomName) &&
         normalizedText.includes(deviceName)
       ) {
+        console.log(
+          "🎤 Device matched by room + device:",
+          device
+        );
+
         return device;
       }
     }
 
     /*
-     * Finally try individual words.
+     * Finally try individual word matching.
      */
-
     const words = normalizedText.split(/\s+/);
 
     let bestDevice: Device | null = null;
@@ -290,7 +406,24 @@ function Voice() {
       }
     }
 
-    return bestScore > 0 ? bestDevice : null;
+    if (bestDevice && bestScore > 0) {
+      console.log(
+        "🎤 Device matched by word similarity:",
+        {
+          device: bestDevice,
+          score: bestScore,
+        }
+      );
+
+      return bestDevice;
+    }
+
+    console.log(
+      "🎤 No matching device found for:",
+      normalizedText
+    );
+
+    return null;
   }
 
   return (
@@ -298,6 +431,7 @@ function Voice() {
       <div className="voice-header">
         <div>
           <h1>Voice Control</h1>
+
           <p>
             Control your ODUZZ devices using your voice.
           </p>
@@ -330,9 +464,17 @@ function Voice() {
         </p>
 
         <div className="voice-examples">
-          <span>"Turn on living room light"</span>
-          <span>"Turn off bedroom light"</span>
-          <span>"Switch on kitchen light"</span>
+          <span>
+            "Turn on living room light"
+          </span>
+
+          <span>
+            "Turn off bedroom light"
+          </span>
+
+          <span>
+            "Switch on kitchen light"
+          </span>
         </div>
 
         <button
@@ -340,18 +482,23 @@ function Voice() {
             listening ? "voice-stop" : ""
           }`}
           onClick={
-            listening ? stopListening : startListening
+            listening
+              ? stopListening
+              : startListening
           }
           disabled={processing}
         >
-          {listening ? "Stop Listening" : "Start Listening"}
+          {listening
+            ? "Stop Listening"
+            : "Start Listening"}
         </button>
 
         <div className="voice-transcript">
           <span>Transcript</span>
 
           <p>
-            {transcript || "Your spoken command will appear here."}
+            {transcript ||
+              "Your spoken command will appear here."}
           </p>
         </div>
 
@@ -368,7 +515,9 @@ function Voice() {
 
           <span>
             {devices.length} device
-            {devices.length === 1 ? "" : "s"}
+            {devices.length === 1
+              ? ""
+              : "s"}
           </span>
         </div>
 
@@ -380,7 +529,8 @@ function Voice() {
           <div className="voice-device-list">
             {devices.map((device) => {
               const room = rooms.find(
-                (item) => item.id === device.room_id
+                (item) =>
+                  item.id === device.room_id
               );
 
               return (
@@ -389,10 +539,13 @@ function Voice() {
                   key={device.id}
                 >
                   <div>
-                    <strong>{device.name}</strong>
+                    <strong>
+                      {device.name}
+                    </strong>
 
                     <span>
-                      {room?.name || "Unknown room"}
+                      {room?.name ||
+                        "Unknown room"}
                     </span>
                   </div>
 
