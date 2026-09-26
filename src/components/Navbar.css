@@ -1,0 +1,96 @@
+/* =================================
+   ODUZZ OS — Navigation Bar
+   ================================= */
+
+.app-navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e1e6ef;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 10px rgba(20, 32, 55, 0.04);
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 800;
+  color: #172033;
+  letter-spacing: -0.5px;
+}
+
+.brand-icon {
+  font-size: 22px;
+}
+
+.brand-accent {
+  color: #315efb;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #5f6878;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  color: #172033;
+  background: #f1f4f9;
+}
+
+.nav-link.active {
+  color: #315efb;
+  background: #eef3ff;
+}
+
+.nav-icon {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 16px;
+    height: auto;
+    flex-direction: column;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 12px;
+  }
+
+  .navbar-links {
+    width: 100%;
+    justify-content: space-around;
+    overflow-x: auto;
+  }
+
+  .nav-link {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}

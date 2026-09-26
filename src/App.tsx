@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import Rooms from "./pages/Rooms/Rooms";
 import Devices from "./pages/Devices/Devices";
 import Voice from "./pages/Voice/Voice";
+import Navbar from "./components/Navbar";
 
 import { startVirtualHub } from "./hub/virtualHub";
 
@@ -19,6 +20,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Navbar />
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/rooms" element={<Rooms />} />
