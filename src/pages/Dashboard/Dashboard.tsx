@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useNavigate } from "react-router-dom";
+import "./Dashboard.css";
 
 type Home = {
   id: string;
@@ -46,6 +47,7 @@ function Dashboard() {
   const [activities, setActivities] = useState<Activity[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [showActivity, setShowActivity] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -97,10 +99,7 @@ function Dashboard() {
     }
 
     if (activityResult.error) {
-      console.error(
-        "Error loading device activity:",
-        activityResult.error
-      );
+      console.error("Error loading device activity:", activityResult.error);
     }
 
     setHomes(homesResult.data ?? []);
@@ -142,9 +141,7 @@ function Dashboard() {
             }
 
             return current.map((state) =>
-              state.device_id === newState.device_id
-                ? newState
-                : state
+              state.device_id === newState.device_id ? newState : state
             );
           });
         }
@@ -249,9 +246,7 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="dashboard-page">
-        <div className="dashboard-loading">
-          Loading ODUZZ OS...
-        </div>
+        <div className="dashboard-loading">Loading ODUZZ OS...</div>
       </div>
     );
   }
@@ -259,11 +254,10 @@ function Dashboard() {
   return (
     <div className="dashboard-page">
       {/* Header */}
-
       <div className="dashboard-header">
         <div>
-          <h1>ODUZZ OS</h1>
-          <p>Smart home control center</p>
+          <h1>ODUZZ OS Dashboard</h1>
+          <p>Smart home system control center & analytics</p>
         </div>
 
         <div className="hub-status">
@@ -273,55 +267,48 @@ function Dashboard() {
       </div>
 
       {/* Summary Cards */}
-
       <div className="dashboard-stats">
-        <div className="dashboard-stat-card">
+        <div className="dashboard-stat-card" onClick={() => navigate("/")}>
           <div className="stat-icon">🏠</div>
-
           <div>
             <span className="stat-label">Homes</span>
             <strong>{homes.length}</strong>
           </div>
         </div>
 
-        <div className="dashboard-stat-card">
+        <div className="dashboard-stat-card" onClick={() => navigate("/rooms")}>
           <div className="stat-icon">🚪</div>
-
           <div>
             <span className="stat-label">Rooms</span>
             <strong>{rooms.length}</strong>
           </div>
         </div>
 
-        <div className="dashboard-stat-card">
+        <div className="dashboard-stat-card" onClick={() => navigate("/devices")}>
           <div className="stat-icon">💡</div>
-
           <div>
-            <span className="stat-label">Devices</span>
+            <span className="stat-label">Total Devices</span>
             <strong>{devices.length}</strong>
           </div>
         </div>
 
-        <div className="dashboard-stat-card">
+        <div className="dashboard-stat-card" onClick={() => navigate("/devices")}>
           <div className="stat-icon">🟢</div>
-
           <div>
-            <span className="stat-label">Devices ON</span>
+            <span className="stat-label">Active (ON)</span>
             <strong>{devicesOn}</strong>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-
+      {/* Main Content Grid */}
       <div className="dashboard-content">
-        {/* Homes */}
-
+        {/* Homes Section */}
         <section className="dashboard-section">
           <div className="section-header">
             <div>
               <h2>My Homes</h2>
-              <p>Select a home to manage its rooms and devices.</p>
+              <p>Select a home to manage rooms and devices</p>
             </div>
 
             <button
@@ -335,13 +322,8 @@ function Dashboard() {
           {homes.length === 0 ? (
             <div className="dashboard-empty">
               <div className="empty-icon">🏠</div>
-
               <h3>No homes yet</h3>
-
-              <p>
-                Add your first smart home to start building your
-                ODUZZ OS system.
-              </p>
+              <p>Add your first smart home to start building your system.</p>
             </div>
           ) : (
             <div className="home-grid">
@@ -350,9 +332,7 @@ function Dashboard() {
                   (room) => room.home_id === home.id
                 );
 
-                const homeRoomIds = homeRooms.map(
-                  (room) => room.id
-                );
+                const homeRoomIds = homeRooms.map((room) => room.id);
 
                 const homeDevices = devices.filter((device) =>
                   homeRoomIds.includes(device.room_id)
@@ -362,20 +342,17 @@ function Dashboard() {
                   <div
                     className="home-card"
                     key={home.id}
-                    onClick={() =>
-                      navigate(`/rooms?home=${home.id}`)
-                    }
+                    onClick={() => navigate(`/rooms?home=${home.id}`)}
                   >
                     <div className="home-card-top">
                       <div className="home-icon">🏠</div>
-
                       <div className="home-arrow">→</div>
                     </div>
 
                     <h3>{home.name}</h3>
 
-                    <p>
-                      📍 {home.address || "No address provided"}
+                    <p className="home-address">
+                      📍 {home.address || "No address specified"}
                     </p>
 
                     <div className="home-meta">
@@ -386,21 +363,9 @@ function Dashboard() {
 
                       <span>
                         💡 {homeDevices.length}{" "}
-                        {homeDevices.length === 1
-                          ? "Device"
-                          : "Devices"}
+                        {homeDevices.length === 1 ? "Device" : "Devices"}
                       </span>
                     </div>
-
-                    <button
-                      onClick={(event) => {
-                        event.stopPropagation();
-
-                        navigate(`/rooms?home=${home.id}`);
-                      }}
-                    >
-                      Manage Home →
-                    </button>
                   </div>
                 );
               })}
@@ -408,34 +373,27 @@ function Dashboard() {
           )}
 
           {/* Add Home Form */}
-
           {showForm && (
             <div className="dashboard-form">
               <h3>Create New Home</h3>
 
               <div className="dashboard-form-group">
                 <label>Home Name</label>
-
                 <input
                   type="text"
-                  placeholder="e.g. My House"
+                  placeholder="e.g. Main House"
                   value={name}
-                  onChange={(event) =>
-                    setName(event.target.value)
-                  }
+                  onChange={(event) => setName(event.target.value)}
                 />
               </div>
 
               <div className="dashboard-form-group">
                 <label>Address</label>
-
                 <input
                   type="text"
-                  placeholder="e.g. 12 Example Street"
+                  placeholder="e.g. 12 Victoria Island"
                   value={address}
-                  onChange={(event) =>
-                    setAddress(event.target.value)
-                  }
+                  onChange={(event) => setAddress(event.target.value)}
                 />
               </div>
 
@@ -450,44 +408,49 @@ function Dashboard() {
           )}
         </section>
 
-        {/* Recent Activity */}
-
-        <section className="dashboard-section">
-          <div className="section-header">
+        {/* Collapsible Recent Activity Section */}
+        <section className="dashboard-section activity-section">
+          <div
+            className="section-header clickable-header"
+            onClick={() => setShowActivity(!showActivity)}
+          >
             <div>
-              <h2>Recent Activity</h2>
-              <p>Latest commands processed by ODUZZ OS.</p>
+              <h2>
+                System Activity Log ({activities.length}){" "}
+                <span className="toggle-icon">{showActivity ? "▲" : "▼"}</span>
+              </h2>
+              <p>Recent automated and voice commands executed</p>
             </div>
+
+            <button className="activity-toggle-btn">
+              {showActivity ? "Collapse" : "Expand"}
+            </button>
           </div>
 
-          {activities.length === 0 ? (
-            <div className="dashboard-empty small">
-              <div className="empty-icon">⚡</div>
-
-              <p>No device activity yet.</p>
-            </div>
-          ) : (
-            <div className="activity-list">
-              {activities.map((activity) => (
-                <div
-                  className="dashboard-activity-item"
-                  key={activity.id}
-                >
-                  <div>
-                    <strong>
-                      {formatActivity(activity.command)}
-                    </strong>
-
-                    <span>
-                      {getDeviceName(activity.device_id)}
-                    </span>
-                  </div>
-
-                  <time>
-                    {formatTime(activity.created_at)}
-                  </time>
+          {showActivity && (
+            <div className="activity-dropdown-container">
+              {activities.length === 0 ? (
+                <div className="dashboard-empty small">
+                  <div className="empty-icon">⚡</div>
+                  <p>No recent activity logs recorded.</p>
                 </div>
-              ))}
+              ) : (
+                <div className="activity-list">
+                  {activities.map((activity) => (
+                    <div className="dashboard-activity-item" key={activity.id}>
+                      <div className="activity-info">
+                        <strong>{formatActivity(activity.command)}</strong>
+                        <span className="activity-device-name">
+                          {getDeviceName(activity.device_id)}
+                        </span>
+                      </div>
+                      <time className="activity-timestamp">
+                        {formatTime(activity.created_at)}
+                      </time>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </section>

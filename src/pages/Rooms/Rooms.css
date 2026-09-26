@@ -1,0 +1,228 @@
+/* ================================
+   ODUZZ OS — Rooms UI
+   ================================ */
+
+.rooms-page {
+  min-height: calc(100vh - 64px);
+  padding: 32px;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.rooms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.rooms-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.rooms-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.add-room-trigger {
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: #315efb;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-room-trigger:hover {
+  background: #254edb;
+}
+
+.rooms-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  background: #ffffff;
+  padding: 14px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  max-width: 400px;
+}
+
+.rooms-selector-bar label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.rooms-selector-bar select {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: #ffffff;
+}
+
+/* Add Room Card */
+
+.add-room-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.add-room-card h3 {
+  margin: 0 0 14px 0;
+  font-size: 15px;
+}
+
+.add-room-input-group {
+  display: flex;
+  gap: 12px;
+}
+
+.add-room-input-group input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.add-room-input-group button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Rooms Grid */
+
+.rooms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.room-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border-color: #cbd5e1;
+}
+
+.room-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.room-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.room-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #315efb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.room-card h3 {
+  margin: 0 0 14px 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.room-device-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.device-chip {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+}
+
+.device-chip-more {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.no-devices-text {
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.room-card-footer {
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 13px;
+  font-weight: 600;
+  color: #315efb;
+}
+
+.rooms-loading,
+.empty-rooms {
+  padding: 40px;
+  text-align: center;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  color: #64748b;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .add-room-input-group {
+    flex-direction: column;
+  }
+}

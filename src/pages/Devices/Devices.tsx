@@ -54,6 +54,12 @@ function Devices() {
     Record<string, boolean>
   >({});
 
+  const [showActivity, setShowActivity] = useState<
+    Record<string, boolean>
+  >({});
+
+  const [showAddForm, setShowAddForm] = useState(false);
+
   const [selectedHome, setSelectedHome] = useState("");
   const [selectedRoom, setSelectedRoom] = useState("");
 
@@ -203,8 +209,6 @@ function Devices() {
 
     const channel = supabase
       .channel(`device-realtime-${selectedRoom}`)
-
-      // Device state realtime updates
       .on(
         "postgres_changes",
         {
@@ -213,21 +217,17 @@ function Devices() {
           table: "device_states",
         },
         async (payload) => {
-          console.log("Realtime device state:", payload);
-
           const updatedState = payload.new as DeviceState;
 
           if (!updatedState?.device_id) {
             return;
           }
 
-          // Update immediately from realtime event
           setDeviceStates((currentStates) => ({
             ...currentStates,
             [updatedState.device_id]: updatedState,
           }));
 
-          // Then fetch the latest state from Supabase
           const { data, error } = await supabase
             .from("device_states")
             .select("*")
@@ -235,10 +235,7 @@ function Devices() {
             .maybeSingle();
 
           if (error) {
-            console.error(
-              "Error refreshing device state:",
-              error
-            );
+            console.error("Error refreshing device state:", error);
             return;
           }
 
@@ -248,8 +245,6 @@ function Devices() {
               [data.device_id]: data,
             }));
 
-            // Device has reached its actual state.
-            // Allow another command.
             setPendingCommands((currentPending) => ({
               ...currentPending,
               [data.device_id]: false,
@@ -257,54 +252,43 @@ function Devices() {
           }
         }
       )
-
-      // Device activity realtime updates
-      // Device activity realtime updates
-        .on(
+      .on(
         "postgres_changes",
         {
-            event: "INSERT",
-            schema: "public",
-            table: "device_activity",
+          event: "INSERT",
+          schema: "public",
+          table: "device_activity",
         },
         (payload) => {
-            console.log("Realtime device activity:", payload);
+          const newActivity = payload.new as DeviceActivity;
 
-            const newActivity = payload.new as DeviceActivity;
-
-            if (!newActivity?.id || !newActivity?.device_id) {
+          if (!newActivity?.id || !newActivity?.device_id) {
             return;
-            }
+          }
 
-            setDeviceActivity((currentActivity) => {
+          setDeviceActivity((currentActivity) => {
             const existingActivities =
-                currentActivity[newActivity.device_id] ?? [];
+              currentActivity[newActivity.device_id] ?? [];
 
-            // Prevent duplicate activity entries
             const alreadyExists = existingActivities.some(
-                (activity) => activity.id === newActivity.id
+              (activity) => activity.id === newActivity.id
             );
 
             if (alreadyExists) {
-                return currentActivity;
+              return currentActivity;
             }
 
             return {
-                ...currentActivity,
-                [newActivity.device_id]: [
+              ...currentActivity,
+              [newActivity.device_id]: [
                 newActivity,
                 ...existingActivities,
-                ],
+              ],
             };
-            });
+          });
         }
-        )   
-
-      .subscribe((status) => {
-        console.log(
-          `Device realtime subscription status: ${status}`
-        );
-      });
+      )
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -312,29 +296,21 @@ function Devices() {
   }, [selectedRoom]);
 
   async function sendCommand(
-  deviceId: string,
-  command: "TURN_ON" | "TURN_OFF"
-) {
-  // Prevent duplicate commands
-  if (pendingCommands[deviceId]) {
-    console.log(
-      `Command already pending for device ${deviceId}`
-    );
-    return;
-  }
+    deviceId: string,
+    command: "TURN_ON" | "TURN_OFF"
+  ) {
+    if (pendingCommands[deviceId]) {
+      return;
+    }
 
-  const expectedState =
-    command === "TURN_ON" ? "ON" : "OFF";
+    const expectedState = command === "TURN_ON" ? "ON" : "OFF";
 
-  // Lock the buttons immediately
-  setPendingCommands((currentPending) => ({
-    ...currentPending,
-    [deviceId]: true,
-  }));
+    setPendingCommands((currentPending) => ({
+      ...currentPending,
+      [deviceId]: true,
+    }));
 
-  const { error } = await supabase
-    .from("device_commands")
-    .insert([
+    const { error } = await supabase.from("device_commands").insert([
       {
         device_id: deviceId,
         command,
@@ -342,85 +318,51 @@ function Devices() {
       },
     ]);
 
-  if (error) {
-    console.error("Command error:", error);
-
-    setPendingCommands((currentPending) => ({
-      ...currentPending,
-      [deviceId]: false,
-    }));
-
-    alert(error.message);
-    return;
-  }
-
-  console.log(`Command sent: ${command}`);
-
-  // Wait for the Virtual Hub to update the device state.
-  // We check Supabase directly instead of relying only
-  // on the realtime event.
-  const maxAttempts = 15;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    await new Promise((resolve) =>
-      setTimeout(resolve, 500)
-    );
-
-    const { data: latestState, error: stateError } =
-      await supabase
-        .from("device_states")
-        .select("*")
-        .eq("device_id", deviceId)
-        .maybeSingle();
-
-    if (stateError) {
-      console.error(
-        "Error checking device state:",
-        stateError
-      );
-      continue;
-    }
-
-    if (!latestState) {
-      continue;
-    }
-
-    console.log(
-      `Device state check ${attempt + 1}:`,
-      latestState.actual_state
-    );
-
-    // Update the UI immediately
-    setDeviceStates((currentStates) => ({
-      ...currentStates,
-      [deviceId]: latestState,
-    }));
-
-    // Command has reached the expected physical state
-    if (latestState.actual_state === expectedState) {
-      console.log(
-        `Device ${deviceId} reached ${expectedState}`
-      );
+    if (error) {
+      console.error("Command error:", error);
 
       setPendingCommands((currentPending) => ({
         ...currentPending,
         [deviceId]: false,
       }));
 
+      alert(error.message);
       return;
     }
+
+    const maxAttempts = 15;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      const { data: latestState, error: stateError } = await supabase
+        .from("device_states")
+        .select("*")
+        .eq("device_id", deviceId)
+        .maybeSingle();
+
+      if (stateError) continue;
+      if (!latestState) continue;
+
+      setDeviceStates((currentStates) => ({
+        ...currentStates,
+        [deviceId]: latestState,
+      }));
+
+      if (latestState.actual_state === expectedState) {
+        setPendingCommands((currentPending) => ({
+          ...currentPending,
+          [deviceId]: false,
+        }));
+        return;
+      }
+    }
+
+    setPendingCommands((currentPending) => ({
+      ...currentPending,
+      [deviceId]: false,
+    }));
   }
-
-  // Safety fallback
-  console.warn(
-    `Device ${deviceId} did not reach ${expectedState} within the expected time.`
-  );
-
-  setPendingCommands((currentPending) => ({
-    ...currentPending,
-    [deviceId]: false,
-  }));
-}
 
   async function createDevice() {
     if (!selectedRoom) {
@@ -459,15 +401,13 @@ function Devices() {
       return;
     }
 
-    const { error: stateError } = await supabase
-      .from("device_states")
-      .insert([
-        {
-          device_id: newDevice.id,
-          desired_state: "OFF",
-          actual_state: "OFF",
-        },
-      ]);
+    const { error: stateError } = await supabase.from("device_states").insert([
+      {
+        device_id: newDevice.id,
+        desired_state: "OFF",
+        actual_state: "OFF",
+      },
+    ]);
 
     if (stateError) {
       console.error("Error creating device state:", stateError);
@@ -478,314 +418,249 @@ function Devices() {
 
     setDeviceName("");
     setDeviceUid("");
+    setShowAddForm(false);
 
     await loadDevices(selectedRoom);
-
-    alert("Device created successfully!");
-
     setSaving(false);
   }
 
+  function toggleActivityDropdown(deviceId: string) {
+    setShowActivity((prev) => ({
+      ...prev,
+      [deviceId]: !prev[deviceId],
+    }));
+  }
+
   if (loading) {
-    return <p style={{ padding: "2rem" }}>Loading...</p>;
+    return (
+      <div className="devices-page">
+        <div className="devices-loading">Loading Devices...</div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>ODUZZ OS</h1>
-
-      <h2>Devices</h2>
-
-      <br />
-
-      <label>Home</label>
-
-      <br />
-
-      <select
-        value={selectedHome}
-        onChange={(e) => setSelectedHome(e.target.value)}
-      >
-        {homes.map((home) => (
-          <option key={home.id} value={home.id}>
-            {home.name}
-          </option>
-        ))}
-      </select>
-
-      <br />
-      <br />
-
-      <label>Room</label>
-
-      <br />
-
-      <select
-        value={selectedRoom}
-        onChange={(e) => setSelectedRoom(e.target.value)}
-      >
-        {rooms.map((room) => (
-          <option key={room.id} value={room.id}>
-            {room.name}
-          </option>
-        ))}
-      </select>
-        <h3 className="section-title">Devices in this Room</h3>
-
-        {devices.length === 0 ? (
-        <div className="empty-devices">
-            <p>No devices found in this room.</p>
+    <div className="devices-page">
+      <div className="devices-header">
+        <div>
+          <h1>Device Manager</h1>
+          <p>Monitor and control your smart IoT appliances</p>
         </div>
-        ) : (
+
+        <button
+          className="add-device-trigger"
+          onClick={() => setShowAddForm(!showAddForm)}
+        >
+          {showAddForm ? "Close Form" : "+ Add Device"}
+        </button>
+      </div>
+
+      <div className="device-selectors">
+        <div className="selector-group">
+          <label>Select Home</label>
+          <select
+            value={selectedHome}
+            onChange={(e) => setSelectedHome(e.target.value)}
+          >
+            {homes.map((home) => (
+              <option key={home.id} value={home.id}>
+                🏠 {home.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="selector-group">
+          <label>Select Room</label>
+          <select
+            value={selectedRoom}
+            onChange={(e) => setSelectedRoom(e.target.value)}
+            disabled={rooms.length === 0}
+          >
+            {rooms.length === 0 ? (
+              <option value="">No rooms in this home</option>
+            ) : (
+              rooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  🚪 {room.name}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+      </div>
+
+      {showAddForm && (
+        <div className="add-device-card">
+          <h3>Create New Device</h3>
+          <div className="add-device-grid">
+            <div className="form-field">
+              <label>Device Name</label>
+              <input
+                type="text"
+                placeholder="e.g. Ceiling Fan"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Device Type</label>
+              <select
+                value={deviceType}
+                onChange={(e) => setDeviceType(e.target.value)}
+              >
+                <option value="light">Light 💡</option>
+                <option value="fan">Fan 🌀</option>
+                <option value="socket">Socket 🔌</option>
+                <option value="ac">Air Conditioner ❄️</option>
+                <option value="tv">TV 📺</option>
+              </select>
+            </div>
+
+            <div className="form-field">
+              <label>Device UID</label>
+              <input
+                type="text"
+                placeholder="e.g. ODUZZ-H001-R01"
+                value={deviceUid}
+                onChange={(e) => setDeviceUid(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <button
+            className="save-device-btn"
+            onClick={createDevice}
+            disabled={saving}
+          >
+            {saving ? "Creating Device..." : "Save Device"}
+          </button>
+        </div>
+      )}
+
+      <h3 className="section-title">
+        Devices in Room ({devices.length})
+      </h3>
+
+      {devices.length === 0 ? (
+        <div className="empty-devices">
+          <span className="empty-icon">💡</span>
+          <h3>No devices found</h3>
+          <p>Select a different room or add a new device to get started.</p>
+        </div>
+      ) : (
         <div className="devices-grid">
-            {devices.map((device) => {
+          {devices.map((device) => {
             const state = deviceStates[device.id];
             const activities = deviceActivity[device.id] ?? [];
             const isPending = pendingCommands[device.id] ?? false;
+            const isActivityOpen = showActivity[device.id] ?? false;
 
             const getDeviceIcon = () => {
-                switch (device.device_type) {
+              switch (device.device_type) {
                 case "light":
-                    return "💡";
+                  return "💡";
                 case "fan":
-                    return "🌀";
+                  return "🌀";
                 case "socket":
-                    return "🔌";
+                  return "🔌";
                 case "ac":
-                    return "❄️";
+                  return "❄️";
                 case "tv":
-                    return "📺";
+                  return "📺";
                 default:
-                    return "⚡";
-                }
+                  return "⚡";
+              }
             };
 
             const isOn = state?.actual_state === "ON";
 
             return (
-                <div className="device-card" key={device.id}>
-                {/* Device Header */}
+              <div className="device-card" key={device.id}>
                 <div className="device-card-header">
-                    <div className="device-title">
-                    <div className="device-icon">
-                        {getDeviceIcon()}
-                    </div>
-
+                  <div className="device-title">
+                    <div className="device-icon">{getDeviceIcon()}</div>
                     <div>
-                        <h3 className="device-name">
-                        {device.name}
-                        </h3>
-
-                        <p className="device-type">
-                        {device.device_type}
-                        </p>
+                      <h3 className="device-name">{device.name}</h3>
+                      <p className="device-type">{device.device_type}</p>
                     </div>
-                    </div>
-                </div>
+                  </div>
 
-                {/* Device Status */}
-                <div className="device-status">
-                    <span className="status-label">
-                    Current Status
-                    </span>
-
-                    <span
-                    className={`status-value ${
-                        isOn ? "status-on" : "status-off"
+                  <span
+                    className={`status-pill ${
+                      isOn ? "status-pill-on" : "status-pill-off"
                     }`}
-                    >
+                  >
                     {isPending
-                        ? state?.actual_state === "ON"
-                        ? "TURNING OFF..."
-                        : "TURNING ON..."
-                        : isOn
-                        ? "🟢 ON"
-                        : "⚫ OFF"}
-                    </span>
+                      ? "updating..."
+                      : isOn
+                      ? "ON"
+                      : "OFF"}
+                  </span>
                 </div>
 
-                {/* Controls */}
-                {state ? (
-                    <div className="device-controls">
-                    <button
-                        className="btn-on"
-                        onClick={() =>
-                        sendCommand(device.id, "TURN_ON")
-                        }
-                        disabled={isOn || isPending}
-                    >
-                        {isPending && !isOn
-                        ? "TURNING ON..."
-                        : "TURN ON"}
-                    </button>
+                <div className="device-controls">
+                  <button
+                    className="btn-on"
+                    onClick={() => sendCommand(device.id, "TURN_ON")}
+                    disabled={isOn || isPending}
+                  >
+                    {isPending && !isOn ? "TURNING ON..." : "TURN ON"}
+                  </button>
 
-                    <button
-                        className="btn-off"
-                        onClick={() =>
-                        sendCommand(device.id, "TURN_OFF")
-                        }
-                        disabled={!isOn || isPending}
-                    >
-                        {isPending && isOn
-                        ? "TURNING OFF..."
-                        : "TURN OFF"}
-                    </button>
-                    </div>
-                ) : (
-                    <p>Status: No state available</p>
-                )}
-
-                {/* Device UID */}
-                <div className="device-uid">
-                    <strong>Device UID:</strong>{" "}
-                    {device.device_uid}
+                  <button
+                    className="btn-off"
+                    onClick={() => sendCommand(device.id, "TURN_OFF")}
+                    disabled={!isOn || isPending}
+                  >
+                    {isPending && isOn ? "TURNING OFF..." : "TURN OFF"}
+                  </button>
                 </div>
 
-                {/* Activity */}
-                <div className="device-activity">
-                    <h4>Recent Activity</h4>
+                <div className="device-footer">
+                  <span className="device-uid-text">UID: {device.device_uid}</span>
 
+                  <button
+                    className="activity-dropdown-toggle"
+                    onClick={() => toggleActivityDropdown(device.id)}
+                  >
+                    History ({activities.length}) {isActivityOpen ? "▲" : "▼"}
+                  </button>
+                </div>
+
+                {/* Collapsible Activity Dropdown */}
+                {isActivityOpen && (
+                  <div className="activity-dropdown-menu">
                     {activities.length === 0 ? (
-                    <p>No activity yet.</p>
+                      <p className="no-activity">No recent activity recorded.</p>
                     ) : (
-                    activities.slice(0, 5).map((activity) => (
-                        <div
-                        className="activity-item"
-                        key={activity.id}
-                        >
-                        <span>
-                            {activity.command === "TURN_ON"
-                            ? "🟢"
-                            : "⚫"}{" "}
-                            {activity.command === "TURN_ON"
-                            ? "Turned ON"
-                            : "Turned OFF"}
-                        </span>
-
-                        <span className="activity-time">
-                            {new Date(
-                            activity.created_at
-                            ).toLocaleTimeString("en-NG", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                            hour12: true,
-                            })}
-                        </span>
+                      activities.slice(0, 5).map((activity) => (
+                        <div className="activity-dropdown-item" key={activity.id}>
+                          <span>
+                            {activity.command === "TURN_ON" ? "🟢 On" : "⚫ Off"}
+                          </span>
+                          <span className="activity-time">
+                            {new Date(activity.created_at).toLocaleTimeString(
+                              "en-NG",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit",
+                                hour12: true,
+                              }
+                            )}
+                          </span>
                         </div>
-                    ))
+                      ))
                     )}
-                </div>
-                </div>
+                  </div>
+                )}
+              </div>
             );
-            })}
+          })}
         </div>
-        )}
-
-        <hr />
-
-        <div className="add-device">
-        <h3>Add Device</h3>
-
-        <div className="add-device-form">
-            <label>Device Name</label>
-
-            <input
-            type="text"
-            placeholder="Living Room Light"
-            value={deviceName}
-            onChange={(e) =>
-                setDeviceName(e.target.value)
-            }
-            />
-
-            <label>Device Type</label>
-
-            <select
-            value={deviceType}
-            onChange={(e) =>
-                setDeviceType(e.target.value)
-            }
-            >
-            <option value="light">Light</option>
-            <option value="fan">Fan</option>
-            <option value="socket">Socket</option>
-            <option value="ac">Air Conditioner</option>
-            <option value="tv">TV</option>
-            </select>
-
-            <label>Device UID</label>
-
-            <input
-            type="text"
-            placeholder="ODUZZ-H001-R01"
-            value={deviceUid}
-            onChange={(e) =>
-                setDeviceUid(e.target.value)
-            }
-            />
-
-            <button
-            onClick={createDevice}
-            disabled={saving}
-            >
-            {saving ? "Saving..." : "Add Device"}
-            </button>
-        </div>
-        </div>
-      <hr />
-
-      <h3>Add Device</h3>
-
-      <label>Device Name</label>
-
-      <br />
-
-      <input
-        type="text"
-        placeholder="Living Room Light"
-        value={deviceName}
-        onChange={(e) => setDeviceName(e.target.value)}
-      />
-
-      <br />
-      <br />
-
-      <label>Device Type</label>
-
-      <br />
-
-      <select
-        value={deviceType}
-        onChange={(e) => setDeviceType(e.target.value)}
-      >
-        <option value="light">Light</option>
-        <option value="fan">Fan</option>
-        <option value="socket">Socket</option>
-        <option value="ac">Air Conditioner</option>
-        <option value="tv">TV</option>
-      </select>
-
-      <br />
-      <br />
-
-      <label>Device UID</label>
-
-      <br />
-
-      <input
-        type="text"
-        placeholder="ODUZZ-H001-R01"
-        value={deviceUid}
-        onChange={(e) => setDeviceUid(e.target.value)}
-      />
-
-      <br />
-      <br />
-
-      <button onClick={createDevice} disabled={saving}>
-        {saving ? "Saving..." : "Add Device"}
-      </button>
+      )}
     </div>
   );
 }
