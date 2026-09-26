@@ -1,0 +1,272 @@
+/* ================================
+   ODUZZ OS — Automations & Scenes
+   ================================ */
+
+.automations-page {
+  min-height: calc(100vh - 64px);
+  padding: 32px;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.automations-header {
+  margin-bottom: 28px;
+}
+
+.automations-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.automations-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.automations-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.section-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.section-title-bar h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.section-title-bar p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.add-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #315efb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.add-btn:hover {
+  background: #254edb;
+}
+
+/* Form card */
+
+.form-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.form-card h3 {
+  margin: 0 0 14px 0;
+  font-size: 15px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.save-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Scenes grid */
+
+.scenes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.scene-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+}
+
+.scene-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.scene-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.scene-card h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.scene-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #eef2ff;
+  color: #315efb;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.scene-card p {
+  margin: 0 0 16px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.trigger-scene-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.trigger-scene-btn:hover:not(:disabled) {
+  background: #315efb;
+  color: #ffffff;
+}
+
+/* Automations list */
+
+.automations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.automation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.auto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auto-info strong {
+  font-size: 15px;
+}
+
+.auto-trigger-tag {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.auto-target-scene {
+  color: #315efb;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.auto-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auto-status {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auto-status.on {
+  color: #16a34a;
+}
+
+.auto-status.off {
+  color: #94a3b8;
+}
+
+.toggle-switch {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.toggle-switch.active {
+  background: #22c55e;
+  border-color: #16a34a;
+  color: #ffffff;
+}

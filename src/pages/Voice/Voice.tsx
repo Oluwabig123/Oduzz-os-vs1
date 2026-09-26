@@ -196,6 +196,55 @@ function Voice() {
       return;
     }
 
+    // Handle Scene Mode Activation (e.g. "Movie time", "Night mode", "Welcome home", "Away mode")
+    if (intent.type === "ACTIVATE_SCENE") {
+      const startMsg = `Activating ${intent.sceneName}...`;
+      setMessage(startMsg);
+      speakText(startMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+
+      let commandRows: { device_id: string; command: string; status: string }[] = [];
+
+      if (intent.modeKey === "MOVIE") {
+        // Turn off lights, turn on TV/Sockets
+        commandRows = devices.map((d) => ({
+          device_id: d.id,
+          command: d.device_type === "light" ? "TURN_OFF" : "TURN_ON",
+          status: "pending",
+        }));
+      } else if (intent.modeKey === "NIGHT" || intent.modeKey === "AWAY") {
+        // Turn off all devices
+        commandRows = devices.map((d) => ({
+          device_id: d.id,
+          command: "TURN_OFF",
+          status: "pending",
+        }));
+      } else if (intent.modeKey === "WELCOME") {
+        // Turn on all lights & cooling
+        commandRows = devices.map((d) => ({
+          device_id: d.id,
+          command: "TURN_ON",
+          status: "pending",
+        }));
+      }
+
+      if (commandRows.length > 0) {
+        await supabase.from("device_commands").insert(commandRows);
+        try {
+          const { processPendingCommands } = await import("../../hub/virtualHub");
+          await processPendingCommands();
+        } catch (err) {
+          console.error("Error executing scene commands:", err);
+        }
+      }
+
+      const successMsg = `Successfully activated ${intent.sceneName}. Mode routines executed.`;
+      setMessage(successMsg);
+      speakText(successMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      setLastCommandTime(new Date().toLocaleTimeString());
+      setProcessing(false);
+      return;
+    }
+
     // Handle Global Status Query
     if (intent.type === "QUERY_GLOBAL_ON") {
       const { data: states } = await supabase.from("device_states").select("*");

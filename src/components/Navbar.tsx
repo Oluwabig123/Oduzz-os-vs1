@@ -51,6 +51,16 @@ function Navbar() {
             <span className="nav-icon">🎙️</span>
             <span>Voice Control</span>
           </NavLink>
+
+          <NavLink
+            to="/automations"
+            className={({ isActive }) =>
+              `nav-link ${isActive ? "active" : ""}`
+            }
+          >
+            <span className="nav-icon">⚡</span>
+            <span>Automations</span>
+          </NavLink>
         </nav>
       </div>
     </header>

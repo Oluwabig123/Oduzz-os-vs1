@@ -1,12 +1,18 @@
 // AI Voice Structured Intent Schema & Safety Validation Pipeline
 
 export type IntentType =
+  | "ACTIVATE_SCENE"
   | "CONTROL_SINGLE"
   | "CONTROL_ROOM_BULK"
   | "QUERY_DEVICE"
   | "QUERY_GLOBAL_ON";
 
 export type ParsedIntent =
+  | {
+      type: "ACTIVATE_SCENE";
+      sceneName: string;
+      modeKey: "MOVIE" | "NIGHT" | "WELCOME" | "AWAY";
+    }
   | {
       type: "CONTROL_SINGLE";
       deviceId: string;
@@ -48,7 +54,61 @@ export function parseVoiceIntent(
 ): ParsedIntent | null {
   const text = commandText.toLowerCase().trim();
 
-  // 1. Detect Global Status Query: "what devices are currently on?" or "what devices are on?"
+  // 1. Detect Scene Mode Phrases (e.g. "movie time", "movie mode", "night mode", "goodnight", "welcome home")
+  if (
+    text.includes("movie time") ||
+    text.includes("movie mode") ||
+    text.includes("cinema mode") ||
+    text.includes("watch a movie")
+  ) {
+    return {
+      type: "ACTIVATE_SCENE",
+      sceneName: "Movie Mode 🎬",
+      modeKey: "MOVIE",
+    };
+  }
+
+  if (
+    text.includes("night mode") ||
+    text.includes("sleep mode") ||
+    text.includes("good night") ||
+    text.includes("goodnight") ||
+    text.includes("bedtime")
+  ) {
+    return {
+      type: "ACTIVATE_SCENE",
+      sceneName: "Night Mode 🌙",
+      modeKey: "NIGHT",
+    };
+  }
+
+  if (
+    text.includes("welcome home") ||
+    text.includes("i'm home") ||
+    text.includes("im home") ||
+    text.includes("arrived home")
+  ) {
+    return {
+      type: "ACTIVATE_SCENE",
+      sceneName: "Welcome Home 🏠",
+      modeKey: "WELCOME",
+    };
+  }
+
+  if (
+    text.includes("away mode") ||
+    text.includes("leaving home") ||
+    text.includes("i'm leaving") ||
+    text.includes("im leaving")
+  ) {
+    return {
+      type: "ACTIVATE_SCENE",
+      sceneName: "Away Mode 🚗",
+      modeKey: "AWAY",
+    };
+  }
+
+  // 2. Detect Global Status Query: "what devices are currently on?"
   if (
     text.includes("what devices are") ||
     text.includes("which devices are") ||
@@ -58,7 +118,7 @@ export function parseVoiceIntent(
     return { type: "QUERY_GLOBAL_ON" };
   }
 
-  // 2. Detect Specific Device Query: "is the kitchen light on?" or "status of living room light"
+  // 3. Detect Specific Device Query: "is the kitchen light on?"
   if (
     text.startsWith("is ") ||
     text.includes("is the") ||
@@ -75,7 +135,7 @@ export function parseVoiceIntent(
     }
   }
 
-  // 3. Detect Action: TURN_ON or TURN_OFF
+  // 4. Detect Action: TURN_ON or TURN_OFF
   let command: "TURN_ON" | "TURN_OFF" | null = null;
   if (
     text.includes("turn on") ||
@@ -95,7 +155,7 @@ export function parseVoiceIntent(
     return null;
   }
 
-  // 4. Check for Room Bulk Intent: "turn off everything in the bedroom" / "turn on all lights in living room"
+  // 5. Check for Room Bulk Intent: "turn off everything in the bedroom"
   const isBulk =
     text.includes("everything") ||
     text.includes("all devices") ||
@@ -122,7 +182,7 @@ export function parseVoiceIntent(
     }
   }
 
-  // 5. Fallback to Single Device Intent
+  // 6. Fallback to Single Device Intent
   const matchedDevice = findDeviceByName(text, devices, rooms);
   if (matchedDevice) {
     return {
