@@ -7,8 +7,6 @@ export type TTSOptions = {
   enabled?: boolean;
 };
 
-let currentUtterance: SpeechSynthesisUtterance | null = null;
-
 export function speakText(text: string, options: TTSOptions = {}) {
   const { lang = "en-US", rate = 1.0, pitch = 1.0, enabled = true } = options;
 
@@ -35,7 +33,6 @@ export function speakText(text: string, options: TTSOptions = {}) {
       utterance.voice = matchingVoice;
     }
 
-    currentUtterance = utterance;
     window.speechSynthesis.speak(utterance);
   } catch (error) {
     console.error("❌ Speech synthesis error:", error);
