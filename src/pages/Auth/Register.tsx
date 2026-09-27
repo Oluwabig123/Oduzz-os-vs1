@@ -68,32 +68,14 @@ const Register: React.FC = () => {
           name: newHomeName,
           address: "Default Address",
           owner_id: newUser.id,
-          user_id: newUser.id,
         })
         .select()
         .single();
 
       if (homeError) {
-        // Fallback retry without user_id if column missing
-        const { data: fallbackHome } = await supabase
-          .from("homes")
-          .insert({
-            name: newHomeName,
-            address: "Default Address",
-            owner_id: newUser.id,
-          })
-          .select()
-          .single();
-
-        if (fallbackHome) {
-          await supabase.from("home_users").insert({
-            home_id: fallbackHome.id,
-            user_id: newUser.id,
-            role: "owner",
-          });
-        }
+        console.error("Home connection error:", homeError.message);
       } else if (homeData) {
-        // Also create a home_users link table entry if present
+        // Also create a home_users link table entry
         await supabase.from("home_users").insert({
           home_id: homeData.id,
           user_id: newUser.id,

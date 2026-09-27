@@ -202,7 +202,6 @@ function Dashboard() {
         name: name.trim(),
         address: address.trim() || null,
         owner_id: user?.id,
-        user_id: user?.id,
       },
     ]);
 
