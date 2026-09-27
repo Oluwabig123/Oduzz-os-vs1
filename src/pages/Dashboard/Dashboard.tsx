@@ -195,12 +195,18 @@ function Dashboard() {
 
     setSaving(true);
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { error } = await supabase.from("homes").insert([
       {
         name: name.trim(),
         address: address.trim() || null,
+        owner_id: user?.id,
+        user_id: user?.id,
       },
     ]);
+
+
 
     if (error) {
       alert(error.message);

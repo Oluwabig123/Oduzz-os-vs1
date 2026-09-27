@@ -6,7 +6,12 @@ import Rooms from "./pages/Rooms/Rooms";
 import Devices from "./pages/Devices/Devices";
 import Voice from "./pages/Voice/Voice";
 import Automations from "./pages/Automations/Automations";
+import Login from "./pages/Auth/Login";
+import Register from "./pages/Auth/Register";
+import Profile from "./pages/Auth/Profile";
 import Navbar from "./components/Navbar";
+import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
 
 import { startVirtualHub } from "./hub/virtualHub";
 
@@ -20,16 +25,29 @@ function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/rooms" element={<Rooms />} />
-        <Route path="/devices" element={<Devices />} />
-        <Route path="/voice" element={<Voice />} />
-        <Route path="/automations" element={<Automations />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          {/* Public routes for unauthenticated users */}
+          <Route element={<PublicOnlyRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+          </Route>
+
+          {/* Protected routes for authenticated users */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/rooms" element={<Rooms />} />
+            <Route path="/devices" element={<Devices />} />
+            <Route path="/voice" element={<Voice />} />
+            <Route path="/automations" element={<Automations />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

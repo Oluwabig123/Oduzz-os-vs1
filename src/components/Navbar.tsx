@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "./Navbar.css";
 
 function Navbar() {
+  const { user, profile, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => {
@@ -85,6 +87,49 @@ function Navbar() {
             <span className="nav-icon">⚡</span>
             <span>Automations</span>
           </NavLink>
+
+          {user ? (
+            <>
+              <NavLink
+                to="/profile"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">👤</span>
+                <span>{profile?.full_name || user.email?.split("@")[0] || "Profile"}</span>
+              </NavLink>
+
+              <button
+                onClick={() => {
+                  closeMenu();
+                  signOut();
+                }}
+                className="nav-link nav-logout-btn"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#ef4444"
+                }}
+              >
+                <span className="nav-icon">🚪</span>
+                <span>Logout</span>
+              </button>
+            </>
+          ) : (
+            <NavLink
+              to="/login"
+              onClick={closeMenu}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? "active" : ""}`
+              }
+            >
+              <span className="nav-icon">🔑</span>
+              <span>Login</span>
+            </NavLink>
+          )}
         </nav>
       </div>
     </header>
@@ -92,4 +137,5 @@ function Navbar() {
 }
 
 export default Navbar;
+
 
