@@ -390,10 +390,47 @@
 
 @media (max-width: 600px) {
   .dashboard-page {
-    padding: 20px;
+    padding: 16px;
+    min-height: calc(100vh - 60px);
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 22px;
   }
 
   .dashboard-stats {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dashboard-section {
+    padding: 16px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dashboard-add-button {
+    width: 100%;
+  }
+
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-activity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
 }
+

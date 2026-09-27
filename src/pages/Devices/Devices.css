@@ -345,7 +345,43 @@
 }
 
 @media (max-width: 768px) {
+  .devices-page {
+    padding: 16px;
+    min-height: calc(100vh - 60px);
+  }
+
+  .devices-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .devices-header h1 {
+    font-size: 22px;
+  }
+
+  .add-device-trigger {
+    width: 100%;
+  }
+
+  .device-selectors {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .add-device-card {
+    padding: 16px;
+  }
+
   .add-device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .save-device-btn {
+    width: 100%;
+  }
+
+  .devices-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -270,3 +270,56 @@
   border-color: #16a34a;
   color: #ffffff;
 }
+
+@media (max-width: 600px) {
+  .automations-page {
+    padding: 16px;
+    min-height: calc(100vh - 60px);
+  }
+
+  .automations-header h1 {
+    font-size: 22px;
+  }
+
+  .automations-section {
+    padding: 16px;
+  }
+
+  .section-title-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .add-btn {
+    width: 100%;
+  }
+
+  .form-card {
+    padding: 16px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .save-btn {
+    width: 100%;
+  }
+
+  .scenes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .automation-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .auto-toggle-wrapper {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+

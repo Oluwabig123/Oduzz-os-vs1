@@ -1,19 +1,39 @@
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import "./Navbar.css";
 
 function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setIsOpen((prev) => !prev);
+  };
+
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
+
   return (
     <header className="app-navbar">
       <div className="navbar-container">
-        <NavLink to="/" className="navbar-brand">
+        <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
           <span className="brand-icon">⚡</span>
           <span className="brand-text">ODUZZ <span className="brand-accent">OS</span></span>
         </NavLink>
 
-        <nav className="navbar-links">
+        <button
+          className="navbar-toggle"
+          onClick={toggleMenu}
+          aria-label="Toggle navigation menu"
+        >
+          {isOpen ? "✕" : "☰"}
+        </button>
+
+        <nav className={`navbar-links ${isOpen ? "open" : ""}`}>
           <NavLink
             to="/"
             end
+            onClick={closeMenu}
             className={({ isActive }) =>
               `nav-link ${isActive ? "active" : ""}`
             }
@@ -24,6 +44,7 @@ function Navbar() {
 
           <NavLink
             to="/rooms"
+            onClick={closeMenu}
             className={({ isActive }) =>
               `nav-link ${isActive ? "active" : ""}`
             }
@@ -34,6 +55,7 @@ function Navbar() {
 
           <NavLink
             to="/devices"
+            onClick={closeMenu}
             className={({ isActive }) =>
               `nav-link ${isActive ? "active" : ""}`
             }
@@ -44,6 +66,7 @@ function Navbar() {
 
           <NavLink
             to="/voice"
+            onClick={closeMenu}
             className={({ isActive }) =>
               `nav-link ${isActive ? "active" : ""}`
             }
@@ -54,6 +77,7 @@ function Navbar() {
 
           <NavLink
             to="/automations"
+            onClick={closeMenu}
             className={({ isActive }) =>
               `nav-link ${isActive ? "active" : ""}`
             }
@@ -68,3 +92,4 @@ function Navbar() {
 }
 
 export default Navbar;
+
