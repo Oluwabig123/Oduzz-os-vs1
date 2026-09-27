@@ -195,26 +195,37 @@ function Dashboard() {
 
     setSaving(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("homes").insert([
-      {
-        name: name.trim(),
-        address: address.trim() || null,
-        owner_id: user?.id,
-      },
-    ]);
+      if (authError || !authData.user) {
+        alert("Authentication error: " + (authError?.message || "No user session found. Please log in again."));
+        setSaving(false);
+        return;
+      }
 
+      const userId = authData.user.id;
 
+      const { error } = await supabase.from("homes").insert([
+        {
+          name: name.trim(),
+          address: address.trim() || null,
+          owner_id: userId,
+        },
+      ]);
 
-    if (error) {
-      alert(error.message);
-    } else {
-      setName("");
-      setAddress("");
-      setShowForm(false);
-
-      await loadDashboard();
+      if (error) {
+        console.error("Create home error:", error);
+        alert("Failed to create home: " + error.message + "\n\nCode: " + error.code + "\nDetails: " + (error.details || "none"));
+      } else {
+        setName("");
+        setAddress("");
+        setShowForm(false);
+        await loadDashboard();
+      }
+    } catch (err: any) {
+      console.error("Unexpected error creating home:", err);
+      alert("Unexpected error: " + (err?.message || String(err)));
     }
 
     setSaving(false);
