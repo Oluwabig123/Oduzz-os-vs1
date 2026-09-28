@@ -59,32 +59,75 @@ function Dashboard() {
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    const [
-      homesResult,
-      roomsResult,
-      devicesResult,
-      statesResult,
-      activityResult,
-    ] = await Promise.all([
-      user
-        ? supabase
-            .from("homes")
-            .select("*")
-            .eq("owner_id", user.id)
-            .order("created_at", { ascending: false })
-        : supabase
-            .from("homes")
-            .select("*")
-            .order("created_at", { ascending: false }),
+    if (!user) {
+      setHomes([]);
+      setRooms([]);
+      setDevices([]);
+      setDeviceStates([]);
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
 
+    // 1. Fetch homes for current logged-in user
+    const { data: userHomes, error: homesError } = await supabase
+      .from("homes")
+      .select("*")
+      .eq("owner_id", user.id)
+      .order("created_at", { ascending: false });
 
-      supabase.from("rooms").select("*"),
+    if (homesError) {
+      console.error("Error loading homes:", homesError);
+      setHomes([]);
+      setRooms([]);
+      setDevices([]);
+      setDeviceStates([]);
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
 
+    const currentHomes = userHomes ?? [];
+    setHomes(currentHomes);
 
-      supabase.from("devices").select("*"),
+    if (currentHomes.length === 0) {
+      setRooms([]);
+      setDevices([]);
+      setDeviceStates([]);
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
 
+    const homeIds = currentHomes.map((h) => h.id);
+
+    // 2. Fetch rooms in user's homes ONLY
+    const { data: userRooms, error: roomsError } = await supabase
+      .from("rooms")
+      .select("*")
+      .in("home_id", homeIds);
+
+    if (roomsError) {
+      console.error("Error loading rooms:", roomsError);
+    }
+
+    const currentRooms = userRooms ?? [];
+    setRooms(currentRooms);
+
+    if (currentRooms.length === 0) {
+      setDevices([]);
+      setDeviceStates([]);
+      setActivities([]);
+      setLoading(false);
+      return;
+    }
+
+    const roomIds = currentRooms.map((r) => r.id);
+
+    // 3. Fetch devices, device states, and activities in user's rooms ONLY
+    const [devicesResult, statesResult, activityResult] = await Promise.all([
+      supabase.from("devices").select("*").in("room_id", roomIds),
       supabase.from("device_states").select("*"),
-
       supabase
         .from("device_activity")
         .select("*")
@@ -92,34 +135,22 @@ function Dashboard() {
         .limit(10),
     ]);
 
-    if (homesResult.error) {
-      console.error("Error loading homes:", homesResult.error);
-    }
+    const loadedDevices = devicesResult.data ?? [];
+    const validDeviceIds = loadedDevices.map((d) => d.id);
 
-    if (roomsResult.error) {
-      console.error("Error loading rooms:", roomsResult.error);
-    }
+    setDevices(loadedDevices);
 
-    if (devicesResult.error) {
-      console.error("Error loading devices:", devicesResult.error);
-    }
-
-    if (statesResult.error) {
-      console.error("Error loading device states:", statesResult.error);
-    }
-
-    if (activityResult.error) {
-      console.error("Error loading device activity:", activityResult.error);
-    }
-
-    setHomes(homesResult.data ?? []);
-    setRooms(roomsResult.data ?? []);
-    setDevices(devicesResult.data ?? []);
-    setDeviceStates(statesResult.data ?? []);
-    setActivities(activityResult.data ?? []);
+    // Filter states and activity to ONLY devices belonging to this user
+    setDeviceStates(
+      (statesResult.data ?? []).filter((s) => validDeviceIds.includes(s.device_id))
+    );
+    setActivities(
+      (activityResult.data ?? []).filter((a) => validDeviceIds.includes(a.device_id))
+    );
 
     setLoading(false);
   }
+
 
   useEffect(() => {
     loadDashboard();
@@ -142,6 +173,9 @@ function Dashboard() {
           const newState = payload.new as DeviceState;
 
           setDeviceStates((current) => {
+            const isMyDevice = devices.some((d) => d.id === newState.device_id);
+            if (!isMyDevice) return current;
+
             const exists = current.some(
               (state) => state.device_id === newState.device_id
             );
@@ -161,7 +195,7 @@ function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [devices]);
 
   // Realtime activity updates
   useEffect(() => {
@@ -178,6 +212,9 @@ function Dashboard() {
           const newActivity = payload.new as Activity;
 
           setActivities((current) => {
+            const isMyDevice = devices.some((d) => d.id === newActivity.device_id);
+            if (!isMyDevice) return current;
+
             const alreadyExists = current.some(
               (activity) => activity.id === newActivity.id
             );
@@ -195,7 +232,8 @@ function Dashboard() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [devices]);
+
 
   async function createHome() {
     if (!name.trim()) {
@@ -265,9 +303,11 @@ function Dashboard() {
     });
   }
 
+  const validDeviceIds = devices.map((d) => d.id);
   const devicesOn = deviceStates.filter(
-    (state) => state.actual_state === "ON"
+    (state) => validDeviceIds.includes(state.device_id) && state.actual_state === "ON"
   ).length;
+
 
   if (loading) {
     return (
