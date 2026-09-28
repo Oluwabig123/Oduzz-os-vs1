@@ -41,12 +41,18 @@ function Rooms() {
   async function loadData() {
     setLoading(true);
 
-    const { data: homesData, error: homesError } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
       .from("homes")
       .select("id, name")
       .order("created_at", { ascending: false });
 
+    if (user?.id) {
+      query = query.eq("owner_id", user.id);
+    }
 
+    const { data: homesData, error: homesError } = await query;
 
     if (homesError) {
       console.error("Error loading homes:", homesError);
@@ -59,6 +65,7 @@ function Rooms() {
 
     setLoading(false);
   }
+
 
   async function loadRoomsAndDevices(hId: string) {
     if (!hId) {

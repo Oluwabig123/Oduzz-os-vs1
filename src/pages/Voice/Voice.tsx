@@ -66,44 +66,20 @@ function Voice() {
   }, []);
 
   async function loadDevices() {
-    // 1. Fetch homes for user
-    const { data: userHomes } = await supabase.from("homes").select("id");
-    const homeIds = (userHomes || []).map((h) => h.id);
+    const [
+      { data: deviceData, error: deviceError },
+      { data: roomData, error: roomError },
+    ] = await Promise.all([
+      supabase
+        .from("devices")
+        .select("id, room_id, name, device_type")
+        .order("created_at", { ascending: true }),
 
-    if (homeIds.length === 0) {
-      setDevices([]);
-      setRooms([]);
-      return;
-    }
-
-    // 2. Fetch rooms for user's homes
-    const { data: roomData, error: roomError } = await supabase
-      .from("rooms")
-      .select("id, name")
-      .in("home_id", homeIds)
-      .order("created_at", { ascending: true });
-
-    if (roomError) {
-      console.error("Error loading rooms:", roomError);
-      setMessage("Unable to load rooms.");
-      return;
-    }
-
-    const currentRooms = roomData || [];
-    setRooms(currentRooms);
-
-    const roomIds = currentRooms.map((r) => r.id);
-    if (roomIds.length === 0) {
-      setDevices([]);
-      return;
-    }
-
-    // 3. Fetch devices in user's rooms
-    const { data: deviceData, error: deviceError } = await supabase
-      .from("devices")
-      .select("id, room_id, name, device_type")
-      .in("room_id", roomIds)
-      .order("created_at", { ascending: true });
+      supabase
+        .from("rooms")
+        .select("id, name")
+        .order("created_at", { ascending: true }),
+    ]);
 
     if (deviceError) {
       console.error("Error loading devices:", deviceError);
@@ -111,9 +87,15 @@ function Voice() {
       return;
     }
 
-    setDevices(deviceData || []);
-  }
+    if (roomError) {
+      console.error("Error loading rooms:", roomError);
+      setMessage("Unable to load rooms.");
+      return;
+    }
 
+    setDevices(deviceData || []);
+    setRooms(roomData || []);
+  }
 
   function startListening() {
     stopSpeech(); // Stop any ongoing TTS audio before listening

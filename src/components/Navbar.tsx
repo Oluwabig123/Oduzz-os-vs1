@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./Navbar.css";
 
 function Navbar() {
+  const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+
 
   const toggleMenu = () => {
     setIsOpen((prev) => !prev);
@@ -102,9 +104,10 @@ function Navbar() {
               </NavLink>
 
               <button
-                onClick={() => {
+                onClick={async () => {
                   closeMenu();
-                  signOut();
+                  await signOut();
+                  navigate("/login");
                 }}
                 className="nav-link nav-logout-btn"
                 style={{
@@ -117,6 +120,7 @@ function Navbar() {
                 <span className="nav-icon">🚪</span>
                 <span>Logout</span>
               </button>
+
             </>
           ) : (
             <NavLink

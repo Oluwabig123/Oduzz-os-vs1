@@ -39,40 +39,13 @@ function AutomationsPage() {
   }, []);
 
   async function loadDevices() {
-    // 1. Fetch homes for user
-    const { data: userHomes } = await supabase.from("homes").select("id");
-    const homeIds = (userHomes || []).map((h) => h.id);
-
-    if (homeIds.length === 0) {
-      setDevices([]);
-      return;
-    }
-
-    // 2. Fetch rooms for these homes
-    const { data: userRooms } = await supabase
-      .from("rooms")
-      .select("id")
-      .in("home_id", homeIds);
-    const roomIds = (userRooms || []).map((r) => r.id);
-
-    if (roomIds.length === 0) {
-      setDevices([]);
-      return;
-    }
-
-    // 3. Fetch only devices in the user's rooms
-    const { data } = await supabase
-      .from("devices")
-      .select("id, name")
-      .in("room_id", roomIds);
-
+    const { data } = await supabase.from("devices").select("id, name");
     setDevices(data || []);
     if (data && data.length > 0) {
       setSelectedDeviceId(data[0].id);
       setTriggerDeviceId(data[0].id);
     }
   }
-
 
   function loadInitialData() {
     const defaultScenes: Scene[] = [

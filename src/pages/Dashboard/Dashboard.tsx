@@ -57,64 +57,26 @@ function Dashboard() {
   async function loadDashboard() {
     setLoading(true);
 
-    // 1. Load user's homes first
-    const { data: userHomes, error: homesError } = await supabase
-      .from("homes")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [
+      homesResult,
+      roomsResult,
+      devicesResult,
+      statesResult,
+      activityResult,
+    ] = await Promise.all([
+      supabase
+        .from("homes")
+        .select("*")
+        .order("created_at", { ascending: false }),
 
-    if (homesError) {
-      console.error("Error loading homes:", homesError);
-      setHomes([]);
-      setRooms([]);
-      setDevices([]);
-      setDeviceStates([]);
-      setActivities([]);
-      setLoading(false);
-      return;
-    }
+      supabase.from("rooms").select("*"),
 
-    const currentHomes = userHomes ?? [];
-    setHomes(currentHomes);
 
-    if (currentHomes.length === 0) {
-      setRooms([]);
-      setDevices([]);
-      setDeviceStates([]);
-      setActivities([]);
-      setLoading(false);
-      return;
-    }
 
-    const homeIds = currentHomes.map((h) => h.id);
+      supabase.from("devices").select("*"),
 
-    // 2. Load rooms that belong ONLY to the user's homes
-    const { data: userRooms, error: roomsError } = await supabase
-      .from("rooms")
-      .select("*")
-      .in("home_id", homeIds);
-
-    if (roomsError) {
-      console.error("Error loading rooms:", roomsError);
-    }
-
-    const currentRooms = userRooms ?? [];
-    setRooms(currentRooms);
-
-    if (currentRooms.length === 0) {
-      setDevices([]);
-      setDeviceStates([]);
-      setActivities([]);
-      setLoading(false);
-      return;
-    }
-
-    const roomIds = currentRooms.map((r) => r.id);
-
-    // 3. Load devices, states, and activity ONLY for these rooms
-    const [devicesResult, statesResult, activityResult] = await Promise.all([
-      supabase.from("devices").select("*").in("room_id", roomIds),
       supabase.from("device_states").select("*"),
+
       supabase
         .from("device_activity")
         .select("*")
@@ -122,16 +84,31 @@ function Dashboard() {
         .limit(10),
     ]);
 
-    const loadedDevices = devicesResult.data ?? [];
-    const validDeviceIds = loadedDevices.map((d) => d.id);
+    if (homesResult.error) {
+      console.error("Error loading homes:", homesResult.error);
+    }
 
-    setDevices(loadedDevices);
-    setDeviceStates(
-      (statesResult.data ?? []).filter((s) => validDeviceIds.includes(s.device_id))
-    );
-    setActivities(
-      (activityResult.data ?? []).filter((a) => validDeviceIds.includes(a.device_id))
-    );
+    if (roomsResult.error) {
+      console.error("Error loading rooms:", roomsResult.error);
+    }
+
+    if (devicesResult.error) {
+      console.error("Error loading devices:", devicesResult.error);
+    }
+
+    if (statesResult.error) {
+      console.error("Error loading device states:", statesResult.error);
+    }
+
+    if (activityResult.error) {
+      console.error("Error loading device activity:", activityResult.error);
+    }
+
+    setHomes(homesResult.data ?? []);
+    setRooms(roomsResult.data ?? []);
+    setDevices(devicesResult.data ?? []);
+    setDeviceStates(statesResult.data ?? []);
+    setActivities(activityResult.data ?? []);
 
     setLoading(false);
   }

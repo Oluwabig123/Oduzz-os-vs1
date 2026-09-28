@@ -71,12 +71,18 @@ function Devices() {
   const [saving, setSaving] = useState(false);
 
   async function loadHomes() {
-    const { data, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let query = supabase
       .from("homes")
       .select("id, name")
       .order("created_at", { ascending: false });
 
+    if (user?.id) {
+      query = query.eq("owner_id", user.id);
+    }
 
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error loading homes:", error);
@@ -90,6 +96,7 @@ function Devices() {
 
     setLoading(false);
   }
+
 
   async function loadRooms(homeId: string) {
     const { data, error } = await supabase
