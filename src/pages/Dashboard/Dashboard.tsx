@@ -57,6 +57,8 @@ function Dashboard() {
   async function loadDashboard() {
     setLoading(true);
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     const [
       homesResult,
       roomsResult,
@@ -64,13 +66,19 @@ function Dashboard() {
       statesResult,
       activityResult,
     ] = await Promise.all([
-      supabase
-        .from("homes")
-        .select("*")
-        .order("created_at", { ascending: false }),
+      user
+        ? supabase
+            .from("homes")
+            .select("*")
+            .eq("owner_id", user.id)
+            .order("created_at", { ascending: false })
+        : supabase
+            .from("homes")
+            .select("*")
+            .order("created_at", { ascending: false }),
+
 
       supabase.from("rooms").select("*"),
-
 
 
       supabase.from("devices").select("*"),

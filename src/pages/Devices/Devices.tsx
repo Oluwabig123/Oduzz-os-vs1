@@ -84,6 +84,7 @@ function Devices() {
 
     const { data, error } = await query;
 
+
     if (error) {
       console.error("Error loading homes:", error);
     } else {

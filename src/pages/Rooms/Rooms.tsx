@@ -54,6 +54,7 @@ function Rooms() {
 
     const { data: homesData, error: homesError } = await query;
 
+
     if (homesError) {
       console.error("Error loading homes:", homesError);
     } else {

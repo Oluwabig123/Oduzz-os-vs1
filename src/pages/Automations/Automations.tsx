@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import type { Scene, Automation } from "../../types/automations";
-import { processPendingCommands } from "../../hub/virtualHub";
 import "./Automations.css";
-
 
 type Device = {
   id: string;
@@ -106,6 +104,7 @@ function AutomationsPage() {
         }));
 
         await supabase.from("device_commands").insert(commandRows);
+        const { processPendingCommands } = await import("../../hub/virtualHub");
         await processPendingCommands();
       }
     } else {
@@ -116,9 +115,9 @@ function AutomationsPage() {
       }));
 
       await supabase.from("device_commands").insert(commandRows);
+      const { processPendingCommands } = await import("../../hub/virtualHub");
       await processPendingCommands();
     }
-
 
     setTimeout(() => {
       setExecuting(null);
