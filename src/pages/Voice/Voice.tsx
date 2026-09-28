@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { speakText, stopSpeech } from "../../lib/tts";
 import { parseVoiceIntent } from "../../lib/aiVoiceParser";
+import { processPendingCommands } from "../../hub/virtualHub";
 import "./Voice.css";
+
 
 type Room = {
   id: string;
@@ -230,7 +232,6 @@ function Voice() {
       if (commandRows.length > 0) {
         await supabase.from("device_commands").insert(commandRows);
         try {
-          const { processPendingCommands } = await import("../../hub/virtualHub");
           await processPendingCommands();
         } catch (err) {
           console.error("Error executing scene commands:", err);
@@ -313,7 +314,6 @@ function Voice() {
       await supabase.from("device_commands").insert(commandRows);
 
       try {
-        const { processPendingCommands } = await import("../../hub/virtualHub");
         await processPendingCommands();
       } catch (err) {
         console.error("Error executing bulk command:", err);
@@ -351,8 +351,8 @@ function Voice() {
       }
 
       try {
-        const { processPendingCommands } = await import("../../hub/virtualHub");
         await processPendingCommands();
+
 
         const expectedState = intent.command === "TURN_ON" ? "ON" : "OFF";
         const maxAttempts = 10;

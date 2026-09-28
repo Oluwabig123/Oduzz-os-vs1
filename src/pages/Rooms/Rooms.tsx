@@ -41,20 +41,11 @@ function Rooms() {
   async function loadData() {
     setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: homesData, error: homesError } = await supabase
+      .from("homes")
+      .select("id, name")
+      .order("created_at", { ascending: false });
 
-    const query = user
-      ? supabase
-          .from("homes")
-          .select("id, name")
-          .or(`owner_id.eq.${user.id},id.in.(select home_id from home_users where user_id='${user.id}')`)
-          .order("created_at", { ascending: false })
-      : supabase
-          .from("homes")
-          .select("id, name")
-          .order("created_at", { ascending: false });
-
-    const { data: homesData, error: homesError } = await query;
 
 
     if (homesError) {
