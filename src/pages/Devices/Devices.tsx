@@ -71,10 +71,21 @@ function Devices() {
   const [saving, setSaving] = useState(false);
 
   async function loadHomes() {
-    const { data, error } = await supabase
-      .from("homes")
-      .select("id, name")
-      .order("created_at", { ascending: false });
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const query = user
+      ? supabase
+          .from("homes")
+          .select("id, name")
+          .or(`owner_id.eq.${user.id},id.in.(select home_id from home_users where user_id='${user.id}')`)
+          .order("created_at", { ascending: false })
+      : supabase
+          .from("homes")
+          .select("id, name")
+          .order("created_at", { ascending: false });
+
+    const { data, error } = await query;
+
 
     if (error) {
       console.error("Error loading homes:", error);
