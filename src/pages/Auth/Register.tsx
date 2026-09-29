@@ -48,19 +48,10 @@ const Register: React.FC = () => {
     const newUser = authData.user;
 
     if (newUser) {
-      // 2. Create user profile in profiles table
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: newUser.id,
-        full_name: fullName.trim(),
-        role: "owner",
-        updated_at: new Date().toISOString(),
-      });
+      // Note: Profile row (with role = 'owner') is created automatically
+      // by the server-side database trigger on auth.users — no client input needed.
 
-      if (profileError) {
-        console.error("Profile creation warning:", profileError.message);
-      }
-
-      // 3. Create default home connected to this user (owner_id = newUser.id)
+      // 2. Create default home connected to this user (owner_id = newUser.id)
       const newHomeName = homeName.trim() || `${fullName.trim()}'s Home`;
       const { data: homeData, error: homeError } = await supabase
         .from("homes")
@@ -73,16 +64,23 @@ const Register: React.FC = () => {
         .single();
 
       if (homeError) {
-        console.error("Home connection error:", homeError.message);
-      } else if (homeData) {
-        // Also create a home_users link table entry
-        await supabase.from("home_users").insert({
-          home_id: homeData.id,
-          user_id: newUser.id,
-          role: "owner",
-        });
+        setError("Account created but home setup failed. Please contact support.");
+        setLoading(false);
+        return;
       }
 
+      // 3. Link user to home in home_users junction table
+      const { error: homeUserError } = await supabase.from("home_users").insert({
+        home_id: homeData.id,
+        user_id: newUser.id,
+        role: "owner",
+      });
+
+      if (homeUserError) {
+        setError("Account created but home membership setup failed. Please contact support.");
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(false);
