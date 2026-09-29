@@ -11,10 +11,12 @@ const Register: React.FC = () => {
   const [homeName, setHomeName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setInfoMessage(null);
 
     if (!fullName.trim() || !email.trim() || !password.trim()) {
       setError("Please fill in all required fields.");
@@ -36,6 +38,7 @@ const Register: React.FC = () => {
         data: {
           full_name: fullName.trim(),
         },
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
 
@@ -46,6 +49,16 @@ const Register: React.FC = () => {
     }
 
     const newUser = authData.user;
+    const session = authData.session;
+
+    // Check if email confirmation is required (user exists but no active session yet)
+    if (newUser && !session) {
+      setLoading(false);
+      setInfoMessage(
+        "Registration successful! Please check your email to confirm your account before logging in."
+      );
+      return;
+    }
 
     if (newUser) {
       // Note: Profile row (with role = 'owner') is created automatically
@@ -98,6 +111,23 @@ const Register: React.FC = () => {
         </div>
 
         {error && <div className="auth-error">{error}</div>}
+        {infoMessage && (
+          <div
+            style={{
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              color: "#1d4ed8",
+              padding: "12px 14px",
+              borderRadius: "10px",
+              fontSize: "13px",
+              fontWeight: 600,
+              marginBottom: "20px",
+              lineHeight: 1.4,
+            }}
+          >
+            ✉️ {infoMessage}
+          </div>
+        )}
 
         <form className="auth-form" onSubmit={handleRegister}>
           <div className="form-group">
