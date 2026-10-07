@@ -10,10 +10,12 @@ const Register: React.FC = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [homeName, setHomeName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
@@ -104,6 +106,7 @@ const Register: React.FC = () => {
 
   return (
     <div className="auth-container">
+      <div className="auth-ambient-glow" />
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-brand" style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
@@ -134,45 +137,66 @@ const Register: React.FC = () => {
         <form className="auth-form" onSubmit={handleRegister}>
           <div className="form-group">
             <label>Full Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Alex Johnson"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
+            <div className="input-with-icon">
+              <span className="input-leading-icon">👤</span>
+              <input
+                type="text"
+                placeholder="e.g. Alex Johnson"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label>Email Address</label>
-            <input
-              type="email"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="input-with-icon">
+              <span className="input-leading-icon">✉️</span>
+              <input
+                type="email"
+                placeholder="user@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
 
           <div className="form-group">
             <label>Password</label>
-            <input
-              type="password"
-              placeholder="Min 6 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="input-with-icon">
+              <span className="input-leading-icon">🔒</span>
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Min 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle-btn"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "👁️" : "🙈"}
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
             <label>Default Home Name (Optional)</label>
-            <input
-              type="text"
-              placeholder="e.g. Victoria Residence"
-              value={homeName}
-              onChange={(e) => setHomeName(e.target.value)}
-            />
+            <div className="input-with-icon">
+              <span className="input-leading-icon">🏠</span>
+              <input
+                type="text"
+                placeholder="e.g. Victoria Residence"
+                value={homeName}
+                onChange={(e) => setHomeName(e.target.value)}
+              />
+            </div>
           </div>
 
           <button type="submit" className="auth-submit-btn" disabled={loading}>

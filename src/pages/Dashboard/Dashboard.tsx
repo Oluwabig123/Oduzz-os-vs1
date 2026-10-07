@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useNavigate } from "react-router-dom";
 import OduzzLogo from "../../components/OduzzLogo";
+import ActivityLogView from "../../components/ActivityLogView";
 import "./Dashboard.css";
+
 
 
 type Home = {
@@ -49,7 +51,8 @@ function Dashboard() {
   const [activities, setActivities] = useState<Activity[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [showActivity, setShowActivity] = useState(false);
+  const [showActivity, setShowActivity] = useState(true);
+  const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -134,7 +137,7 @@ function Dashboard() {
         .from("device_activity")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(10),
+        .limit(50),
     ]);
 
     const loadedDevices = devicesResult.data ?? [];
@@ -152,6 +155,27 @@ function Dashboard() {
 
     setLoading(false);
   }
+
+  async function refreshLogs() {
+    setIsRefreshingLogs(true);
+    try {
+      const validDeviceIds = devices.map((d) => d.id);
+      const { data: latestLogs } = await supabase
+        .from("device_activity")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (latestLogs) {
+        setActivities(latestLogs.filter((a) => validDeviceIds.includes(a.device_id)));
+      }
+    } catch (err) {
+      console.warn("Failed to refresh activity logs:", err);
+    } finally {
+      setIsRefreshingLogs(false);
+    }
+  }
+
 
 
   useEffect(() => {
@@ -225,7 +249,7 @@ function Dashboard() {
               return current;
             }
 
-            return [newActivity, ...current].slice(0, 10);
+            return [newActivity, ...current].slice(0, 50);
           });
         }
       )
@@ -279,30 +303,6 @@ function Dashboard() {
     }
 
     setSaving(false);
-  }
-
-  function getDeviceName(deviceId: string) {
-    const device = devices.find((item) => item.id === deviceId);
-    return device?.name || "Unknown Device";
-  }
-
-  function formatActivity(command: string) {
-    if (command === "TURN_ON") {
-      return "🟢 Turned ON";
-    }
-
-    if (command === "TURN_OFF") {
-      return "⚫ Turned OFF";
-    }
-
-    return command;
-  }
-
-  function formatTime(timestamp: string) {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   }
 
   const validDeviceIds = devices.map((d) => d.id);
@@ -479,7 +479,7 @@ function Dashboard() {
           )}
         </section>
 
-        {/* Collapsible Recent Activity Section */}
+        {/* Interactive System Activity Log Section */}
         <section className="dashboard-section activity-section">
           <div
             className="section-header clickable-header"
@@ -490,7 +490,7 @@ function Dashboard() {
                 System Activity Log ({activities.length}){" "}
                 <span className="toggle-icon">{showActivity ? "▲" : "▼"}</span>
               </h2>
-              <p>Recent automated and voice commands executed</p>
+              <p>Real-time telemetry, automated routines & voice command audit trail</p>
             </div>
 
             <button className="activity-toggle-btn">
@@ -500,28 +500,13 @@ function Dashboard() {
 
           {showActivity && (
             <div className="activity-dropdown-container">
-              {activities.length === 0 ? (
-                <div className="dashboard-empty small">
-                  <div className="empty-icon">⚡</div>
-                  <p>No recent activity logs recorded.</p>
-                </div>
-              ) : (
-                <div className="activity-list">
-                  {activities.map((activity) => (
-                    <div className="dashboard-activity-item" key={activity.id}>
-                      <div className="activity-info">
-                        <strong>{formatActivity(activity.command)}</strong>
-                        <span className="activity-device-name">
-                          {getDeviceName(activity.device_id)}
-                        </span>
-                      </div>
-                      <time className="activity-timestamp">
-                        {formatTime(activity.created_at)}
-                      </time>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ActivityLogView
+                activities={activities}
+                devices={devices}
+                rooms={rooms}
+                onRefresh={refreshLogs}
+                isRefreshing={isRefreshingLogs}
+              />
             </div>
           )}
         </section>
