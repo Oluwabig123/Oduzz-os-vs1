@@ -10,6 +10,9 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import Profile from "./pages/Auth/Profile";
 import Navbar from "./components/Navbar";
+import InstallAppBanner from "./components/InstallAppBanner";
+import MobileBottomNav from "./components/MobileBottomNav";
+import GlobalVoiceAssistant from "./components/GlobalVoiceAssistant";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -27,7 +30,11 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        {/* PWA Download / Install App Prompt Banner */}
+        <InstallAppBanner />
+
         <Navbar />
+
         <Routes>
           {/* Public routes for unauthenticated users */}
           <Route element={<PublicOnlyRoute />}>
@@ -44,8 +51,13 @@ function App() {
             <Route path="/automations" element={<Automations />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
-
         </Routes>
+
+        {/* Global Floating Voice Assistant */}
+        <GlobalVoiceAssistant />
+
+        {/* Mobile Native-Style Bottom Navigation Bar */}
+        <MobileBottomNav />
       </BrowserRouter>
     </AuthProvider>
   );

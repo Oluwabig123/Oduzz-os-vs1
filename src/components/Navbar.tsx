@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import OduzzLogo from "./OduzzLogo";
 import "./Navbar.css";
 
 function Navbar() {
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-
 
   const toggleMenu = () => {
     setIsOpen((prev) => !prev);
@@ -20,10 +20,10 @@ function Navbar() {
   return (
     <header className="app-navbar">
       <div className="navbar-container">
-        <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
-          <span className="brand-icon">⚡</span>
-          <span className="brand-text">ODUZZ <span className="brand-accent">OS</span></span>
+        <NavLink to="/" className="navbar-brand-link" onClick={closeMenu}>
+          <OduzzLogo size={32} variant="full" />
         </NavLink>
+
 
         <button
           className="navbar-toggle"

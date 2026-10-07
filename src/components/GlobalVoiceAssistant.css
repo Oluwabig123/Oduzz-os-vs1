@@ -1,0 +1,111 @@
+/* Global Voice Floating Assistant Widget */
+.global-voice-assistant-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  animation: fabFadeIn 0.3s ease-out;
+}
+
+@keyframes fabFadeIn {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.fab-orb {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #315efb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+  position: relative;
+  transition: all 0.25s ease;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.fab-orb:hover {
+  transform: scale(1.08);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.7);
+}
+
+.fab-icon {
+  font-size: 22px;
+}
+
+.fab-pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(56, 189, 248, 0.4);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fab-orb.wake-active {
+  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.6);
+}
+
+.fab-orb.wake-active .fab-pulse-ring {
+  opacity: 1;
+  animation: fabRingPulse 2s infinite;
+}
+
+@keyframes fabRingPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+.fab-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.global-voice-assistant-fab:hover .fab-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* On mobile with bottom navigation bar, adjust fab position */
+@media (max-width: 768px) {
+  .global-voice-assistant-fab {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+  }
+
+  .fab-orb {
+    width: 44px;
+    height: 44px;
+  }
+
+  .fab-icon {
+    font-size: 19px;
+  }
+
+  .fab-tooltip {
+    display: none; /* Keep clean on small mobile screens */
+  }
+}

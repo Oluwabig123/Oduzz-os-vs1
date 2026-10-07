@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 import { useNavigate } from "react-router-dom";
+import OduzzLogo from "../../components/OduzzLogo";
 import "./Dashboard.css";
+
 
 type Home = {
   id: string;
@@ -321,9 +323,12 @@ function Dashboard() {
     <div className="dashboard-page">
       {/* Header */}
       <div className="dashboard-header">
-        <div>
-          <h1>ODUZZ OS Dashboard</h1>
-          <p>Smart home system control center & analytics</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <OduzzLogo size={36} variant="icon" />
+          <div>
+            <h1>ODUZZ OS Dashboard</h1>
+            <p>Smart home system control center & analytics</p>
+          </div>
         </div>
 
         <div className="hub-status">

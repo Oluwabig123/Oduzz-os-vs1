@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
+import OduzzLogo from "../../components/OduzzLogo";
 import "./Auth.css";
+
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
@@ -104,8 +106,8 @@ const Register: React.FC = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-brand">
-            ⚡ ODUZZ <span className="auth-brand-accent">OS</span>
+          <div className="auth-brand" style={{ display: "flex", justifyContent: "center", marginBottom: "8px" }}>
+            <OduzzLogo size={36} variant="full" />
           </div>
           <p className="auth-subtitle">Create your smart home account</p>
         </div>

@@ -52,9 +52,19 @@ export function parseVoiceIntent(
   devices: DeviceInfo[],
   rooms: RoomInfo[]
 ): ParsedIntent | null {
-  const text = commandText.toLowerCase().trim();
+  let text = commandText.toLowerCase().trim();
+
+  // 0. Cleanly strip any leading wake word phonetic variant or pleasantry
+  text = text
+    .replace(
+      /^(hey|hi|hello|ok|okay)?\s*(oduzz|odus|odos|or dose|oh duzz|all does|o duzz|audus|audos|o dose|old us)\s*,?\s*/i,
+      ""
+    )
+    .replace(/^(can you|could you|please)\s+/i, "")
+    .trim();
 
   // 1. Detect Scene Mode Phrases (e.g. "movie time", "movie mode", "night mode", "goodnight", "welcome home")
+
   if (
     text.includes("movie time") ||
     text.includes("movie mode") ||
@@ -232,6 +242,12 @@ function findDeviceByName(
     "is",
     "check",
     "status",
+    "oduzz",
+    "odus",
+    "odos",
+    "dose",
+    "hey",
+    "hello",
   ]);
 
   const words = text.split(/\s+/).filter((w) => !stopWords.has(w));

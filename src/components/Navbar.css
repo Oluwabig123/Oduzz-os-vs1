@@ -21,6 +21,13 @@
   justify-content: space-between;
 }
 
+.navbar-brand-link {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 .navbar-brand {
   display: flex;
   align-items: center;
@@ -31,6 +38,7 @@
   color: #172033;
   letter-spacing: -0.5px;
 }
+
 
 .brand-icon {
   font-size: 22px;

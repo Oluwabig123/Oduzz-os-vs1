@@ -1,0 +1,99 @@
+/* Mobile Bottom Navigation Bar */
+.oduzz-mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .oduzz-mobile-bottom-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 9999;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Padding offset for page contents so bottom nav doesn't cover content */
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 12px;
+    gap: 3px;
+    transition: all 0.2s ease;
+    flex: 1;
+  }
+
+  .mobile-nav-icon {
+    font-size: 19px;
+    transition: transform 0.2s ease;
+  }
+
+  .mobile-nav-item.active {
+    color: #38bdf8;
+  }
+
+  .mobile-nav-item.active .mobile-nav-icon {
+    transform: translateY(-2px);
+  }
+
+  /* Central Floating Voice Action Orb */
+  .mobile-nav-center-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 8px;
+    gap: 3px;
+    position: relative;
+    top: -12px;
+  }
+
+  .mobile-voice-orb {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1 0%, #315efb 100%);
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 3px solid #0f172a;
+  }
+
+  .mobile-voice-icon {
+    font-size: 20px;
+  }
+
+  .mobile-nav-center-item.active .mobile-voice-orb {
+    transform: scale(1.08);
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.8);
+    background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+  }
+
+  .mobile-nav-center-item.active {
+    color: #38bdf8;
+  }
+}
