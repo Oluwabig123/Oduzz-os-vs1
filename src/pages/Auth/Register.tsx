@@ -34,6 +34,8 @@ const Register: React.FC = () => {
 
     setLoading(true);
 
+    const defaultHomeName = homeName.trim() || `${fullName.trim()}'s Home`;
+
     // 1. Sign up user via Supabase Auth
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email: email.trim(),
@@ -41,6 +43,7 @@ const Register: React.FC = () => {
       options: {
         data: {
           full_name: fullName.trim(),
+          default_home_name: defaultHomeName,
         },
         emailRedirectTo: `${window.location.origin}/login`,
       },
@@ -57,6 +60,9 @@ const Register: React.FC = () => {
 
     // Check if email confirmation is required (user exists but no active session yet)
     if (newUser && !session) {
+      try {
+        localStorage.setItem("oduzz_pending_home_name", defaultHomeName);
+      } catch {}
       setLoading(false);
       setInfoMessage(
         "Registration successful! Please check your email to confirm your account before logging in."

@@ -1,4 +1,5 @@
 // AI Voice Structured Intent Schema & Safety Validation Pipeline
+import type { Scene } from "../types/automations";
 
 export type IntentType =
   | "ACTIVATE_SCENE"
@@ -11,7 +12,8 @@ export type ParsedIntent =
   | {
       type: "ACTIVATE_SCENE";
       sceneName: string;
-      modeKey: "MOVIE" | "NIGHT" | "WELCOME" | "AWAY";
+      modeKey: "MOVIE" | "NIGHT" | "WELCOME" | "AWAY" | "CUSTOM";
+      customScene?: Scene;
     }
   | {
       type: "CONTROL_SINGLE";
@@ -47,10 +49,20 @@ export type RoomInfo = {
   name: string;
 };
 
+function detectMentionedDeviceType(text: string): string | null {
+  if (/\b(lights?|lamps?|bulbs?)\b/.test(text)) return "light";
+  if (/\b(fans?|ventilators?)\b/.test(text)) return "fan";
+  if (/\b(ac|air\s*conditioners?|coolers?)\b/.test(text)) return "ac";
+  if (/\b(tvs?|televisions?|screens?)\b/.test(text)) return "tv";
+  if (/\b(sockets?|plugs?|outlets?)\b/.test(text)) return "socket";
+  return null;
+}
+
 export function parseVoiceIntent(
   commandText: string,
   devices: DeviceInfo[],
-  rooms: RoomInfo[]
+  rooms: RoomInfo[],
+  customScenes?: Scene[]
 ): ParsedIntent | null {
   let text = commandText.toLowerCase().trim();
 
@@ -63,8 +75,27 @@ export function parseVoiceIntent(
     .replace(/^(can you|could you|please)\s+/i, "")
     .trim();
 
-  // 1. Detect Scene Mode Phrases (e.g. "movie time", "movie mode", "night mode", "goodnight", "welcome home")
+  if (!text) return null;
 
+  // 1. Check user-created custom scenes first
+  if (customScenes && customScenes.length > 0) {
+    for (const scene of customScenes) {
+      const cleanSceneName = scene.name
+        .toLowerCase()
+        .replace(/[^\w\s]/g, "")
+        .trim();
+      if (cleanSceneName && text.includes(cleanSceneName)) {
+        return {
+          type: "ACTIVATE_SCENE",
+          sceneName: scene.name,
+          modeKey: "CUSTOM",
+          customScene: scene,
+        };
+      }
+    }
+  }
+
+  // 2. Detect Built-in Scene Mode Phrases
   if (
     text.includes("movie time") ||
     text.includes("movie mode") ||
@@ -118,17 +149,19 @@ export function parseVoiceIntent(
     };
   }
 
-  // 2. Detect Global Status Query: "what devices are currently on?"
+  // 3. Detect Global Status Query: "what devices are currently on?"
   if (
     text.includes("what devices are") ||
     text.includes("which devices are") ||
     text.includes("devices currently on") ||
-    (text.includes("what") && text.includes("on"))
+    text.includes("what is on") ||
+    text.includes("what's on") ||
+    text.includes("whats on")
   ) {
     return { type: "QUERY_GLOBAL_ON" };
   }
 
-  // 3. Detect Specific Device Query: "is the kitchen light on?"
+  // 4. Detect Specific Device Query: "is the kitchen light on?"
   if (
     text.startsWith("is ") ||
     text.includes("is the") ||
@@ -145,18 +178,25 @@ export function parseVoiceIntent(
     }
   }
 
-  // 4. Detect Action: TURN_ON or TURN_OFF
+  // 5. Detect Action: TURN_ON or TURN_OFF
   let command: "TURN_ON" | "TURN_OFF" | null = null;
   if (
     text.includes("turn on") ||
     text.includes("switch on") ||
-    (text.includes("switch") && text.includes("on"))
+    text.includes("power on") ||
+    text.includes("enable ") ||
+    (text.includes("switch") && /\bon\b/.test(text)) ||
+    (text.includes("turn") && /\bon\b/.test(text))
   ) {
     command = "TURN_ON";
   } else if (
     text.includes("turn off") ||
     text.includes("switch off") ||
-    (text.includes("switch") && text.includes("off"))
+    text.includes("power off") ||
+    text.includes("shut off") ||
+    text.includes("disable ") ||
+    (text.includes("switch") && /\boff\b/.test(text)) ||
+    (text.includes("turn") && /\boff\b/.test(text))
   ) {
     command = "TURN_OFF";
   }
@@ -165,21 +205,29 @@ export function parseVoiceIntent(
     return null;
   }
 
-  // 5. Check for Room Bulk Intent: "turn off everything in the bedroom"
+  // 6. Check for Room or Home Bulk Intent: "turn off everything in the bedroom" / "turn off all lights"
   const isBulk =
     text.includes("everything") ||
     text.includes("all devices") ||
+    text.includes("all the devices") ||
     text.includes("all lights") ||
-    text.includes("every device");
+    text.includes("all the lights") ||
+    text.includes("all fans") ||
+    text.includes("all sockets") ||
+    text.includes("every device") ||
+    text.includes("every light");
 
   if (isBulk) {
+    const targetType = detectMentionedDeviceType(text);
     const matchedRoom = rooms.find((room) =>
       text.includes(room.name.toLowerCase())
     );
 
     if (matchedRoom) {
       const roomDevices = devices.filter(
-        (dev) => dev.room_id === matchedRoom.id
+        (dev) =>
+          dev.room_id === matchedRoom.id &&
+          (!targetType || dev.device_type === targetType)
       );
 
       return {
@@ -190,9 +238,24 @@ export function parseVoiceIntent(
         deviceIds: roomDevices.map((d) => d.id),
       };
     }
+
+    // Global bulk across all rooms (e.g., "turn off all lights" or "turn off everything")
+    const filteredGlobal = targetType
+      ? devices.filter((dev) => dev.device_type === targetType)
+      : devices;
+
+    if (filteredGlobal.length > 0) {
+      return {
+        type: "CONTROL_ROOM_BULK",
+        roomId: "all",
+        roomName: targetType ? `all ${targetType}s` : "your home",
+        command,
+        deviceIds: filteredGlobal.map((d) => d.id),
+      };
+    }
   }
 
-  // 6. Fallback to Single Device Intent
+  // 7. Fallback to Single Device Intent
   const matchedDevice = findDeviceByName(text, devices, rooms);
   if (matchedDevice) {
     return {
@@ -211,11 +274,7 @@ function findDeviceByName(
   devices: DeviceInfo[],
   rooms: RoomInfo[]
 ): DeviceInfo | null {
-  const exactMatch = devices.find((device) =>
-    text.includes(device.name.toLowerCase())
-  );
-  if (exactMatch) return exactMatch;
-
+  // 1. Check if both room name and exact device name appear in the transcript
   for (const device of devices) {
     const room = rooms.find((r) => r.id === device.room_id);
     if (!room) continue;
@@ -228,20 +287,37 @@ function findDeviceByName(
     }
   }
 
+  // 2. Check exact device name match (prefer longer/more specific names first)
+  const sortedByNameLength = [...devices].sort(
+    (a, b) => b.name.length - a.name.length
+  );
+  const exactMatch = sortedByNameLength.find((device) =>
+    text.includes(device.name.toLowerCase())
+  );
+  if (exactMatch) return exactMatch;
+
+  // 3. Weighted token + room + device_type scoring (keeping 'light', 'fan', 'tv', 'ac', 'socket' as meaningful tokens!)
   const stopWords = new Set([
     "turn",
     "switch",
+    "power",
+    "shut",
+    "enable",
+    "disable",
     "on",
     "off",
     "the",
     "a",
     "an",
+    "in",
+    "at",
+    "my",
     "please",
-    "light",
     "device",
     "is",
     "check",
     "status",
+    "of",
     "oduzz",
     "odus",
     "odos",
@@ -250,23 +326,41 @@ function findDeviceByName(
     "hello",
   ]);
 
-  const words = text.split(/\s+/).filter((w) => !stopWords.has(w));
+  const mentionedType = detectMentionedDeviceType(text);
+  const words = text
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !stopWords.has(w));
+
   let bestDevice: DeviceInfo | null = null;
   let bestScore = 0;
 
   for (const device of devices) {
     const room = rooms.find((r) => r.id === device.room_id);
-    const roomWords = room ? room.name.toLowerCase().split(/\s+/) : [];
-    const deviceWords = device.name.toLowerCase().split(/\s+/);
-    const targetWords = [...roomWords, ...deviceWords].filter(
-      (w) => !stopWords.has(w)
-    );
+    const roomWords = room
+      ? room.name
+          .toLowerCase()
+          .replace(/[^\w\s]/g, " ")
+          .split(/\s+/)
+      : [];
+    const deviceWords = device.name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/);
 
     let score = 0;
+
     for (const word of words) {
-      if (targetWords.includes(word)) {
-        score++;
+      if (deviceWords.includes(word)) {
+        score += 3; // High weight for matching device name word
       }
+      if (roomWords.includes(word)) {
+        score += 2; // Weight for matching room word
+      }
+    }
+
+    if (mentionedType && device.device_type.toLowerCase() === mentionedType) {
+      score += 3; // Strong bonus when spoken appliance type matches device_type
     }
 
     if (score > bestScore) {

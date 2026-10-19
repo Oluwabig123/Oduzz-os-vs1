@@ -103,18 +103,28 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
     badgeClass: string;
     category: FilterType;
   } {
-    const upper = (command || "").toUpperCase();
-    if (upper.includes("TURN_ON") || upper.includes("SWITCH_ON") || upper.includes("ON")) {
-      return { badgeLabel: "⚡ TURN ON", badgeClass: "badge-on", category: "ON" };
-    }
-    if (upper.includes("TURN_OFF") || upper.includes("SWITCH_OFF") || upper.includes("OFF")) {
-      return { badgeLabel: "🌑 TURN OFF", badgeClass: "badge-off", category: "OFF" };
-    }
+    const upper = (command || "").toUpperCase().trim();
     if (upper.includes("VOICE") || upper.includes("INTENT")) {
       return { badgeLabel: "🎙️ VOICE", badgeClass: "badge-voice", category: "VOICE" };
     }
     if (upper.includes("SCENE") || upper.includes("MODE") || upper.includes("MOVIE") || upper.includes("NIGHT")) {
       return { badgeLabel: "🎬 SCENE", badgeClass: "badge-scene", category: "SCENE" };
+    }
+    if (
+      upper === "ON" ||
+      upper.includes("TURN_ON") ||
+      upper.includes("SWITCH_ON") ||
+      /\bTURN\s+ON\b/.test(upper)
+    ) {
+      return { badgeLabel: "⚡ TURN ON", badgeClass: "badge-on", category: "ON" };
+    }
+    if (
+      upper === "OFF" ||
+      upper.includes("TURN_OFF") ||
+      upper.includes("SWITCH_OFF") ||
+      /\bTURN\s+OFF\b/.test(upper)
+    ) {
+      return { badgeLabel: "🌑 TURN OFF", badgeClass: "badge-off", category: "OFF" };
     }
     return { badgeLabel: "⚙️ COMMAND", badgeClass: "badge-default", category: "ALL" };
   }
@@ -338,7 +348,16 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({
                 <div
                   key={act.id}
                   className={`log-row-card ${isExpanded ? "expanded" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
                   onClick={() => setExpandedLogId(isExpanded ? null : act.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setExpandedLogId(isExpanded ? null : act.id);
+                    }
+                  }}
                 >
                   <div className="log-row-main">
                     {/* Command Badge */}

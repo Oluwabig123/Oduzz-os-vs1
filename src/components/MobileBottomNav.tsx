@@ -1,8 +1,16 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "./MobileBottomNav.css";
 
 export const MobileBottomNav: React.FC = () => {
+  const { user } = useAuth();
+  const location = useLocation();
+
+  if (!user || location.pathname === "/login" || location.pathname === "/register") {
+    return null;
+  }
+
   return (
     <nav className="oduzz-mobile-bottom-nav" aria-label="Mobile Navigation">
       <NavLink

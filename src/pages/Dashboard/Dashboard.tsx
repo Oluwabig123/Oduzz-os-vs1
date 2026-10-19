@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { fetchUserScopedHierarchy } from "../../lib/userScope";
+import {
+  isVirtualHubEnabled,
+  setVirtualHubEnabled,
+  isDevicePhysical,
+} from "../../hub/virtualHub";
 import { useNavigate } from "react-router-dom";
 import OduzzLogo from "../../components/OduzzLogo";
 import ActivityLogView from "../../components/ActivityLogView";
 import "./Dashboard.css";
-
-
 
 type Home = {
   id: string;
@@ -25,6 +29,7 @@ type Device = {
   room_id: string;
   name: string;
   device_type: string;
+  device_uid?: string;
 };
 
 type DeviceState = {
@@ -53,6 +58,9 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showActivity, setShowActivity] = useState(true);
   const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
+  const [virtualHubActive, setVirtualHubActive] = useState<boolean>(
+    isVirtualHubEnabled
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -62,9 +70,14 @@ function Dashboard() {
   async function loadDashboard() {
     setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      userId,
+      homes: currentHomes,
+      rooms: currentRooms,
+      devices: loadedDevices,
+    } = await fetchUserScopedHierarchy();
 
-    if (!user) {
+    if (!userId) {
       setHomes([]);
       setRooms([]);
       setDevices([]);
@@ -74,85 +87,33 @@ function Dashboard() {
       return;
     }
 
-    // 1. Fetch homes for current logged-in user
-    const { data: userHomes, error: homesError } = await supabase
-      .from("homes")
-      .select("*")
-      .eq("owner_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (homesError) {
-      console.error("Error loading homes:", homesError);
-      setHomes([]);
-      setRooms([]);
-      setDevices([]);
-      setDeviceStates([]);
-      setActivities([]);
-      setLoading(false);
-      return;
-    }
-
-    const currentHomes = userHomes ?? [];
     setHomes(currentHomes);
-
-    if (currentHomes.length === 0) {
-      setRooms([]);
-      setDevices([]);
-      setDeviceStates([]);
-      setActivities([]);
-      setLoading(false);
-      return;
-    }
-
-    const homeIds = currentHomes.map((h) => h.id);
-
-    // 2. Fetch rooms in user's homes ONLY
-    const { data: userRooms, error: roomsError } = await supabase
-      .from("rooms")
-      .select("*")
-      .in("home_id", homeIds);
-
-    if (roomsError) {
-      console.error("Error loading rooms:", roomsError);
-    }
-
-    const currentRooms = userRooms ?? [];
     setRooms(currentRooms);
+    setDevices(loadedDevices);
 
-    if (currentRooms.length === 0) {
-      setDevices([]);
+    const validDeviceIds = loadedDevices.map((d) => d.id);
+    if (validDeviceIds.length === 0) {
       setDeviceStates([]);
       setActivities([]);
       setLoading(false);
       return;
     }
 
-    const roomIds = currentRooms.map((r) => r.id);
-
-    // 3. Fetch devices, device states, and activities in user's rooms ONLY
-    const [devicesResult, statesResult, activityResult] = await Promise.all([
-      supabase.from("devices").select("*").in("room_id", roomIds),
-      supabase.from("device_states").select("*"),
+    const [statesResult, activityResult] = await Promise.all([
+      supabase
+        .from("device_states")
+        .select("*")
+        .in("device_id", validDeviceIds),
       supabase
         .from("device_activity")
         .select("*")
+        .in("device_id", validDeviceIds)
         .order("created_at", { ascending: false })
         .limit(50),
     ]);
 
-    const loadedDevices = devicesResult.data ?? [];
-    const validDeviceIds = loadedDevices.map((d) => d.id);
-
-    setDevices(loadedDevices);
-
-    // Filter states and activity to ONLY devices belonging to this user
-    setDeviceStates(
-      (statesResult.data ?? []).filter((s) => validDeviceIds.includes(s.device_id))
-    );
-    setActivities(
-      (activityResult.data ?? []).filter((a) => validDeviceIds.includes(a.device_id))
-    );
-
+    setDeviceStates(statesResult.data ?? []);
+    setActivities(activityResult.data ?? []);
     setLoading(false);
   }
 
@@ -160,14 +121,19 @@ function Dashboard() {
     setIsRefreshingLogs(true);
     try {
       const validDeviceIds = devices.map((d) => d.id);
+      if (validDeviceIds.length === 0) {
+        setActivities([]);
+        return;
+      }
       const { data: latestLogs } = await supabase
         .from("device_activity")
         .select("*")
+        .in("device_id", validDeviceIds)
         .order("created_at", { ascending: false })
         .limit(50);
 
       if (latestLogs) {
-        setActivities(latestLogs.filter((a) => validDeviceIds.includes(a.device_id)));
+        setActivities(latestLogs);
       }
     } catch (err) {
       console.warn("Failed to refresh activity logs:", err);
@@ -176,10 +142,12 @@ function Dashboard() {
     }
   }
 
-
-
   useEffect(() => {
     loadDashboard();
+
+    const syncHubMode = () => setVirtualHubActive(isVirtualHubEnabled());
+    window.addEventListener("oduzz-hub-mode-change", syncHubMode);
+    return () => window.removeEventListener("oduzz-hub-mode-change", syncHubMode);
   }, []);
 
   // Realtime device state updates
@@ -238,7 +206,9 @@ function Dashboard() {
           const newActivity = payload.new as Activity;
 
           setActivities((current) => {
-            const isMyDevice = devices.some((d) => d.id === newActivity.device_id);
+            const isMyDevice = devices.some(
+              (d) => d.id === newActivity.device_id
+            );
             if (!isMyDevice) return current;
 
             const alreadyExists = current.some(
@@ -260,7 +230,6 @@ function Dashboard() {
     };
   }, [devices]);
 
-
   async function createHome() {
     if (!name.trim()) {
       alert("Please enter a home name.");
@@ -270,28 +239,43 @@ function Dashboard() {
     setSaving(true);
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+      const { data: authData, error: authError } =
+        await supabase.auth.getUser();
 
       if (authError || !authData.user) {
-        alert("Authentication error: " + (authError?.message || "No user session found. Please log in again."));
+        alert(
+          "Authentication error: " +
+            (authError?.message || "No user session found. Please log in again.")
+        );
         setSaving(false);
         return;
       }
 
       const userId = authData.user.id;
 
-      const { error } = await supabase.from("homes").insert([
-        {
-          name: name.trim(),
-          address: address.trim() || null,
-          owner_id: userId,
-        },
-      ]);
+      const { data: createdHome, error } = await supabase
+        .from("homes")
+        .insert([
+          {
+            name: name.trim(),
+            address: address.trim() || null,
+            owner_id: userId,
+          },
+        ])
+        .select()
+        .single();
 
       if (error) {
         console.error("Create home error:", error);
-        alert("Failed to create home: " + error.message + "\n\nCode: " + error.code + "\nDetails: " + (error.details || "none"));
+        alert("Failed to create home: " + error.message);
       } else {
+        if (createdHome?.id) {
+          await supabase.from("home_users").insert({
+            home_id: createdHome.id,
+            user_id: userId,
+            role: "owner",
+          });
+        }
         setName("");
         setAddress("");
         setShowForm(false);
@@ -305,11 +289,34 @@ function Dashboard() {
     setSaving(false);
   }
 
+  async function deleteHome(e: React.MouseEvent, home: Home) {
+    e.stopPropagation();
+    const confirmed = window.confirm(
+      `Delete home "${home.name}" and all its rooms/devices?`
+    );
+    if (!confirmed) return;
+
+    await supabase.from("home_users").delete().eq("home_id", home.id);
+    const { error } = await supabase.from("homes").delete().eq("id", home.id);
+    if (error) {
+      alert(`Unable to delete home: ${error.message}`);
+      return;
+    }
+    await loadDashboard();
+  }
+
+  function handleToggleVirtualHub() {
+    const next = !virtualHubActive;
+    setVirtualHubEnabled(next);
+    setVirtualHubActive(next);
+  }
+
   const validDeviceIds = devices.map((d) => d.id);
   const devicesOn = deviceStates.filter(
-    (state) => validDeviceIds.includes(state.device_id) && state.actual_state === "ON"
+    (state) =>
+      validDeviceIds.includes(state.device_id) && state.actual_state === "ON"
   ).length;
-
+  const physicalCount = devices.filter((d) => isDevicePhysical(d)).length;
 
   if (loading) {
     return (
@@ -331,15 +338,59 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="hub-status">
-          <span className="hub-dot"></span>
-          <span>Virtual Hub Online</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {physicalCount > 0 && (
+            <div
+              className="hub-status"
+              style={{
+                background: "#eff6ff",
+                borderColor: "#bfdbfe",
+                color: "#1d4ed8",
+              }}
+              title="Devices configured for Physical ESP32 Smart Nodes"
+            >
+              <span>🔌 {physicalCount} ESP32 Node{physicalCount > 1 ? "s" : ""}</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="hub-status"
+            onClick={handleToggleVirtualHub}
+            title="Click to toggle Virtual Hub Simulator ON or OFF"
+            style={{
+              cursor: "pointer",
+              background: virtualHubActive ? "#f0fdf4" : "#f1f5f9",
+              borderColor: virtualHubActive ? "#bbf7d0" : "#cbd5e1",
+              color: virtualHubActive ? "#166534" : "#475569",
+            }}
+          >
+            <span
+              className="hub-dot"
+              style={{
+                background: virtualHubActive ? "#22c55e" : "#94a3b8",
+                boxShadow: virtualHubActive
+                  ? "0 0 0 4px rgba(34, 197, 94, 0.15)"
+                  : "none",
+              }}
+            />
+            <span>
+              {virtualHubActive
+                ? "Virtual Hub Active"
+                : "Hardware-Only Mode (Virtual Hub Paused)"}
+            </span>
+          </button>
         </div>
       </div>
 
       {/* Summary Cards */}
       <div className="dashboard-stats">
-        <div className="dashboard-stat-card" onClick={() => navigate("/")}>
+        <div
+          className="dashboard-stat-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowForm(true)}
+        >
           <div className="stat-icon">🏠</div>
           <div>
             <span className="stat-label">Homes</span>
@@ -347,7 +398,12 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="dashboard-stat-card" onClick={() => navigate("/rooms")}>
+        <div
+          className="dashboard-stat-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate("/rooms")}
+        >
           <div className="stat-icon">🚪</div>
           <div>
             <span className="stat-label">Rooms</span>
@@ -355,7 +411,12 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="dashboard-stat-card" onClick={() => navigate("/devices")}>
+        <div
+          className="dashboard-stat-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate("/devices")}
+        >
           <div className="stat-icon">💡</div>
           <div>
             <span className="stat-label">Total Devices</span>
@@ -363,7 +424,12 @@ function Dashboard() {
           </div>
         </div>
 
-        <div className="dashboard-stat-card" onClick={() => navigate("/devices")}>
+        <div
+          className="dashboard-stat-card"
+          role="button"
+          tabIndex={0}
+          onClick={() => navigate("/devices")}
+        >
           <div className="stat-icon">🟢</div>
           <div>
             <span className="stat-label">Active (ON)</span>
@@ -413,11 +479,29 @@ function Dashboard() {
                   <div
                     className="home-card"
                     key={home.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate(`/rooms?home=${home.id}`)}
                   >
                     <div className="home-card-top">
                       <div className="home-icon">🏠</div>
-                      <div className="home-arrow">→</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <button
+                          type="button"
+                          onClick={(e) => deleteHome(e, home)}
+                          title="Delete Home"
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#94a3b8",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                          }}
+                        >
+                          🗑️
+                        </button>
+                        <div className="home-arrow">→</div>
+                      </div>
                     </div>
 
                     <h3>{home.name}</h3>
@@ -490,7 +574,10 @@ function Dashboard() {
                 System Activity Log ({activities.length}){" "}
                 <span className="toggle-icon">{showActivity ? "▲" : "▼"}</span>
               </h2>
-              <p>Real-time telemetry, automated routines & voice command audit trail</p>
+              <p>
+                Real-time telemetry, automated routines & voice command audit
+                trail
+              </p>
             </div>
 
             <button className="activity-toggle-btn">

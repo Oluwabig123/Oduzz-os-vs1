@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import OduzzLogo from "./OduzzLogo";
 import "./GlobalVoiceAssistant.css";
 
 export const GlobalVoiceAssistant: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isWakeEnabled, setIsWakeEnabled] = useState(false);
 
   useEffect(() => {
@@ -15,11 +17,16 @@ export const GlobalVoiceAssistant: React.FC = () => {
 
     checkEnabled();
     window.addEventListener("storage", checkEnabled);
-    return () => window.removeEventListener("storage", checkEnabled);
-  }, []);
+    window.addEventListener("oduzz-wake-change", checkEnabled);
+    return () => {
+      window.removeEventListener("storage", checkEnabled);
+      window.removeEventListener("oduzz-wake-change", checkEnabled);
+    };
+  }, [location.pathname]);
 
-  // Hide on the dedicated /voice page or login/register pages
+  // Hide when unauthenticated or on the dedicated /voice page
   if (
+    !user ||
     location.pathname === "/voice" ||
     location.pathname === "/login" ||
     location.pathname === "/register"
@@ -30,8 +37,17 @@ export const GlobalVoiceAssistant: React.FC = () => {
   return (
     <div
       className="global-voice-assistant-fab"
+      role="button"
+      tabIndex={0}
+      aria-label="Open Voice Assistant"
       onClick={() => navigate("/voice")}
-      title="Quick Voice Assistant — Tap to control or say 'Hey Oduzz'"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          navigate("/voice");
+        }
+      }}
+      title="Quick Voice Assistant — Tap to open voice control"
     >
       <div className={`fab-orb ${isWakeEnabled ? "wake-active" : ""}`}>
         <span className="fab-icon">🎙️</span>
@@ -39,7 +55,7 @@ export const GlobalVoiceAssistant: React.FC = () => {
       </div>
       <div className="fab-tooltip">
         <OduzzLogo size={16} variant="icon" />
-        <span>{isWakeEnabled ? "Listening for 'Hey Oduzz'" : "Voice Assistant"}</span>
+        <span>{isWakeEnabled ? "Voice Standby Ready" : "Voice Assistant"}</span>
       </div>
     </div>
   );

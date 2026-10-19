@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 
-
 type Profile = {
   id: string;
   full_name: string | null;
@@ -29,11 +28,52 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+
+  async function ensureInitialHomeIfPending(currentUser: User) {
+    try {
+      const pendingHomeName =
+        localStorage.getItem("oduzz_pending_home_name") ||
+        (currentUser.user_metadata?.default_home_name as string | undefined);
+      if (!pendingHomeName) return;
+
+      const { data: existingHomes } = await supabase
+        .from("homes")
+        .select("id")
+        .eq("owner_id", currentUser.id)
+        .limit(1);
+
+      if (existingHomes && existingHomes.length === 0) {
+        const { data: createdHome } = await supabase
+          .from("homes")
+          .insert({
+            name: pendingHomeName,
+            address: "Default Address",
+            owner_id: currentUser.id,
+          })
+          .select()
+          .single();
+
+        if (createdHome?.id) {
+          await supabase.from("home_users").insert({
+            home_id: createdHome.id,
+            user_id: currentUser.id,
+            role: "owner",
+          });
+        }
+      }
+
+      localStorage.removeItem("oduzz_pending_home_name");
+    } catch (err) {
+      console.warn("Could not auto-provision initial home:", err);
+    }
+  }
 
   async function fetchProfile(userId: string) {
     try {
@@ -55,29 +95,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   useEffect(() => {
-    // 1. Check active sessions
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // 1. Check active session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
+        await fetchProfile(session.user.id);
+        await ensureInitialHomeIfPending(session.user);
       }
       setLoading(false);
     });
 
     // 2. Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchProfile(session.user.id);
+        await ensureInitialHomeIfPending(session.user);
+      } else {
+        setProfile(null);
       }
-    );
+      setLoading(false);
+    });
 
     return () => {
       subscription.unsubscribe();

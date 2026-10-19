@@ -14,9 +14,10 @@ export const OduzzLogo: React.FC<OduzzLogoProps> = ({
   glow = true,
 }) => {
   const iconSize = size;
-  const filterId = `oduzz-glow-${Math.random().toString(36).substr(2, 6)}`;
-  const gradId = `oduzz-grad-${Math.random().toString(36).substr(2, 6)}`;
-  const coreGradId = `oduzz-core-grad-${Math.random().toString(36).substr(2, 6)}`;
+  const rawId = React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const filterId = `oduzz-glow-${rawId}`;
+  const gradId = `oduzz-grad-${rawId}`;
+  const coreGradId = `oduzz-core-grad-${rawId}`;
 
   const renderIcon = () => (
     <svg

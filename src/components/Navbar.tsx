@@ -34,64 +34,64 @@ function Navbar() {
         </button>
 
         <nav className={`navbar-links ${isOpen ? "open" : ""}`}>
-          <NavLink
-            to="/"
-            end
-            onClick={closeMenu}
-            className={({ isActive }) =>
-              `nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="nav-icon">📊</span>
-            <span>Dashboard</span>
-          </NavLink>
-
-          <NavLink
-            to="/rooms"
-            onClick={closeMenu}
-            className={({ isActive }) =>
-              `nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="nav-icon">🚪</span>
-            <span>Rooms</span>
-          </NavLink>
-
-          <NavLink
-            to="/devices"
-            onClick={closeMenu}
-            className={({ isActive }) =>
-              `nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="nav-icon">💡</span>
-            <span>Devices</span>
-          </NavLink>
-
-          <NavLink
-            to="/voice"
-            onClick={closeMenu}
-            className={({ isActive }) =>
-              `nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="nav-icon">🎙️</span>
-            <span>Voice Control</span>
-          </NavLink>
-
-          <NavLink
-            to="/automations"
-            onClick={closeMenu}
-            className={({ isActive }) =>
-              `nav-link ${isActive ? "active" : ""}`
-            }
-          >
-            <span className="nav-icon">⚡</span>
-            <span>Automations</span>
-          </NavLink>
-
           {user ? (
             <>
+              <NavLink
+                to="/"
+                end
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">📊</span>
+                <span>Dashboard</span>
+              </NavLink>
+
+              <NavLink
+                to="/rooms"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">🚪</span>
+                <span>Rooms</span>
+              </NavLink>
+
+              <NavLink
+                to="/devices"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">💡</span>
+                <span>Devices</span>
+              </NavLink>
+
+              <NavLink
+                to="/voice"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">🎙️</span>
+                <span>Voice Control</span>
+              </NavLink>
+
+              <NavLink
+                to="/automations"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">⚡</span>
+                <span>Automations</span>
+              </NavLink>
+
               <NavLink
                 to="/profile"
                 onClick={closeMenu}
@@ -120,19 +120,30 @@ function Navbar() {
                 <span className="nav-icon">🚪</span>
                 <span>Logout</span>
               </button>
-
             </>
           ) : (
-            <NavLink
-              to="/login"
-              onClick={closeMenu}
-              className={({ isActive }) =>
-                `nav-link ${isActive ? "active" : ""}`
-              }
-            >
-              <span className="nav-icon">🔑</span>
-              <span>Login</span>
-            </NavLink>
+            <>
+              <NavLink
+                to="/login"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">🔑</span>
+                <span>Login</span>
+              </NavLink>
+              <NavLink
+                to="/register"
+                onClick={closeMenu}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                <span className="nav-icon">✨</span>
+                <span>Create Account</span>
+              </NavLink>
+            </>
           )}
         </nav>
       </div>

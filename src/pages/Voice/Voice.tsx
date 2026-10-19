@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../../lib/supabase";
+import { fetchUserScopedHierarchy } from "../../lib/userScope";
 import { speakText, stopSpeech } from "../../lib/tts";
 import { parseVoiceIntent } from "../../lib/aiVoiceParser";
 import {
@@ -75,14 +76,48 @@ function Voice() {
 
   const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const wakeWordActiveRef = useRef(wakeWordActive);
-  const awakeTimeoutRef = useRef<any>(null);
+  const awakeRef = useRef(awake);
+  const devicesRef = useRef<Device[]>(devices);
+  const roomsRef = useRef<Room[]>(rooms);
+  const wakeVariantsRef = useRef<string[]>(wakeVariants);
+  const selectedLanguageRef = useRef(selectedLanguage);
+  const ttsEnabledRef = useRef(ttsEnabled);
+  const awakeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isIntentProcessingRef = useRef(false);
 
-  // Sync ref with state
+  // Keep refs synchronized with latest state so continuous SpeechRecognition handlers never read stale closures
   useEffect(() => {
     wakeWordActiveRef.current = wakeWordActive;
     localStorage.setItem("oduzz_wake_enabled", wakeWordActive ? "true" : "false");
+    window.dispatchEvent(new Event("oduzz-wake-change"));
   }, [wakeWordActive]);
+
+  useEffect(() => {
+    awakeRef.current = awake;
+  }, [awake]);
+
+  useEffect(() => {
+    devicesRef.current = devices;
+  }, [devices]);
+
+  useEffect(() => {
+    roomsRef.current = rooms;
+  }, [rooms]);
+
+  useEffect(() => {
+    wakeVariantsRef.current = wakeVariants;
+  }, [wakeVariants]);
+
+  useEffect(() => {
+    selectedLanguageRef.current = selectedLanguage;
+    if (recognitionRef.current) {
+      recognitionRef.current.lang = selectedLanguage;
+    }
+  }, [selectedLanguage]);
+
+  useEffect(() => {
+    ttsEnabledRef.current = ttsEnabled;
+  }, [ttsEnabled]);
 
   useEffect(() => {
     loadDevices();
@@ -100,35 +135,18 @@ function Voice() {
   }, []);
 
   async function loadDevices() {
-    const [
-      { data: deviceData, error: deviceError },
-      { data: roomData, error: roomError },
-    ] = await Promise.all([
-      supabase
-        .from("devices")
-        .select("id, room_id, name, device_type")
-        .order("created_at", { ascending: true }),
+    const { rooms: userRooms, devices: userDevices } =
+      await fetchUserScopedHierarchy();
 
-      supabase
-        .from("rooms")
-        .select("id, name")
-        .order("created_at", { ascending: true }),
-    ]);
-
-    if (deviceError) {
-      console.error("Error loading devices:", deviceError);
-      setMessage("Unable to load devices.");
-      return;
-    }
-
-    if (roomError) {
-      console.error("Error loading rooms:", roomError);
-      setMessage("Unable to load rooms.");
-      return;
-    }
-
-    setDevices(deviceData || []);
-    setRooms(roomData || []);
+    setRooms(userRooms.map((r) => ({ id: r.id, name: r.name })));
+    setDevices(
+      userDevices.map((d) => ({
+        id: d.id,
+        room_id: d.room_id,
+        name: d.name,
+        device_type: d.device_type,
+      }))
+    );
   }
 
   /**
@@ -145,7 +163,10 @@ function Voice() {
       const err =
         "Speech recognition is not supported in this browser. Try Google Chrome or Android/Edge.";
       setMessage(err);
-      speakText(err, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(err, {
+        lang: selectedLanguageRef.current,
+        enabled: ttsEnabledRef.current,
+      });
       return;
     }
 
@@ -161,7 +182,7 @@ function Voice() {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = selectedLanguage;
+    recognition.lang = selectedLanguageRef.current;
 
     recognition.onstart = () => {
       setListening(true);
@@ -210,7 +231,10 @@ function Voice() {
         const errMsg =
           "Microphone permission was denied. Please allow microphone access in your browser.";
         setMessage(errMsg);
-        speakText(errMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+        speakText(errMsg, {
+          lang: selectedLanguageRef.current,
+          enabled: ttsEnabledRef.current,
+        });
         return;
       }
 
@@ -252,43 +276,50 @@ function Voice() {
     if (isIntentProcessingRef.current) return;
 
     // Check if transcript contains any wake-up variant
-    const check = detectWakeWord(text, wakeVariants);
+    const check = detectWakeWord(text, wakeVariantsRef.current);
 
     if (check.detected) {
-      // If we weren't awake yet, trigger wake state and chime!
-      if (!awake) {
+      // If we weren't awake yet, trigger wake state and chime once!
+      if (!awakeRef.current) {
+        awakeRef.current = true;
         setAwake(true);
         setWakeStandby(false);
         playWakeChime();
 
-        // If there's already a command in the same sentence (e.g. "Hey Odos, turn on the light")
-        if (check.commandText && check.commandText.length > 2) {
+        // Only execute inline command once the user finishes speaking the phrase (isFinal)
+        if (isFinal && check.commandText && check.commandText.length > 2) {
           setMessage(`Wake detected (${check.matchedVariant})! Executing command...`);
           processVoiceCommand(check.commandText);
           return;
         }
 
-        // Otherwise, wake up and wait for the upcoming command
+        // Otherwise, wake up and wait for the upcoming or completing command
         setMessage(`Oduzz is listening! Speak your command...`);
-        speakText("I'm listening", { lang: selectedLanguage, enabled: ttsEnabled });
+        if (isFinal && !check.commandText) {
+          speakText("I'm listening", {
+            lang: selectedLanguageRef.current,
+            enabled: ttsEnabledRef.current,
+          });
+        }
 
-        // Set a 6-second timeout to return to wake standby if no follow-up command arrives
+        // Set a 7-second timeout to return to wake standby if no follow-up command arrives
         if (awakeTimeoutRef.current) clearTimeout(awakeTimeoutRef.current);
         awakeTimeoutRef.current = setTimeout(() => {
+          awakeRef.current = false;
           setAwake(false);
           setWakeStandby(true);
           setMessage("Listening for wake phrase ('Hey Oduzz', 'Odos', 'Odus')...");
-        }, 6000);
+        }, 7000);
         return;
       }
 
-      // If we were already awake and user spoke the command
-      if (check.commandText) {
+      // If we were already awake and user finished speaking the command with wake word included
+      if (isFinal && check.commandText && check.commandText.length > 2) {
         if (awakeTimeoutRef.current) clearTimeout(awakeTimeoutRef.current);
         processVoiceCommand(check.commandText);
       }
-    } else if (awake && isFinal) {
-      // User is awake and spoke a non-wake command (e.g. "turn off light")
+    } else if (awakeRef.current && isFinal) {
+      // User is awake and finished speaking a non-wake command (e.g. "turn off light")
       if (awakeTimeoutRef.current) clearTimeout(awakeTimeoutRef.current);
       processVoiceCommand(text);
     }
@@ -296,6 +327,7 @@ function Voice() {
 
   function stopAllListening() {
     wakeWordActiveRef.current = false;
+    awakeRef.current = false;
     setWakeWordActive(false);
     setWakeStandby(false);
     setAwake(false);
@@ -327,13 +359,28 @@ function Voice() {
     setProcessing(true);
     setMessage("Analyzing voice intent...");
 
-    const intent = parseVoiceIntent(text, devices, rooms);
+    const currentDevices = devicesRef.current;
+    const currentRooms = roomsRef.current;
+    const currentLang = selectedLanguageRef.current;
+    const currentTts = ttsEnabledRef.current;
+
+    let customScenes = [];
+    try {
+      const rawScenes = localStorage.getItem("oduzz_scenes");
+      if (rawScenes) {
+        customScenes = JSON.parse(rawScenes);
+      }
+    } catch {
+      // ignore
+    }
+
+    const intent = parseVoiceIntent(text, currentDevices, currentRooms, customScenes);
 
     if (!intent) {
       const fallbackMsg =
         'Command unrecognized. Try saying "Turn on living room light" or "Is bedroom fan on?".';
       setMessage(fallbackMsg);
-      speakText(fallbackMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(fallbackMsg, { lang: currentLang, enabled: currentTts });
       cleanupAfterCommand();
       return;
     }
@@ -342,24 +389,27 @@ function Voice() {
     if (intent.type === "ACTIVATE_SCENE") {
       const startMsg = `Activating ${intent.sceneName}...`;
       setMessage(startMsg);
-      speakText(startMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(startMsg, { lang: currentLang, enabled: currentTts });
 
       let commandRows: { device_id: string; command: string; status: string }[] = [];
 
-      if (intent.modeKey === "MOVIE") {
-        commandRows = devices.map((d) => ({
+      if (intent.modeKey === "CUSTOM" && intent.customScene) {
+        const { buildSceneCommandRows } = await import("../../hub/virtualHub");
+        commandRows = buildSceneCommandRows(intent.customScene, currentDevices);
+      } else if (intent.modeKey === "MOVIE") {
+        commandRows = currentDevices.map((d) => ({
           device_id: d.id,
           command: d.device_type === "light" ? "TURN_OFF" : "TURN_ON",
           status: "pending",
         }));
       } else if (intent.modeKey === "NIGHT" || intent.modeKey === "AWAY") {
-        commandRows = devices.map((d) => ({
+        commandRows = currentDevices.map((d) => ({
           device_id: d.id,
           command: "TURN_OFF",
           status: "pending",
         }));
       } else if (intent.modeKey === "WELCOME") {
-        commandRows = devices.map((d) => ({
+        commandRows = currentDevices.map((d) => ({
           device_id: d.id,
           command: "TURN_ON",
           status: "pending",
@@ -370,7 +420,7 @@ function Voice() {
         await supabase.from("device_commands").insert(commandRows);
         try {
           const { processPendingCommands } = await import("../../hub/virtualHub");
-          await processPendingCommands();
+          await processPendingCommands({ immediate: true });
         } catch (err) {
           console.error("Error executing scene commands:", err);
         }
@@ -378,7 +428,7 @@ function Voice() {
 
       const successMsg = `Successfully activated ${intent.sceneName}. Mode routines executed.`;
       setMessage(successMsg);
-      speakText(successMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(successMsg, { lang: currentLang, enabled: currentTts });
       setLastCommandTime(new Date().toLocaleTimeString());
       cleanupAfterCommand();
       return;
@@ -386,12 +436,20 @@ function Voice() {
 
     // Handle Global Status Query
     if (intent.type === "QUERY_GLOBAL_ON") {
-      const { data: states } = await supabase.from("device_states").select("*");
+      const userDeviceIds = currentDevices.map((d) => d.id);
+      const { data: states } =
+        userDeviceIds.length > 0
+          ? await supabase
+              .from("device_states")
+              .select("*")
+              .in("device_id", userDeviceIds)
+          : { data: [] };
+
       const onDeviceIds = (states || [])
         .filter((s) => s.actual_state === "ON")
         .map((s) => s.device_id);
 
-      const activeDevices = devices.filter((d) => onDeviceIds.includes(d.id));
+      const activeDevices = currentDevices.filter((d) => onDeviceIds.includes(d.id));
 
       let queryReply = "";
       if (activeDevices.length === 0) {
@@ -404,7 +462,7 @@ function Voice() {
       }
 
       setMessage(queryReply);
-      speakText(queryReply, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(queryReply, { lang: currentLang, enabled: currentTts });
       setLastCommandTime(new Date().toLocaleTimeString());
       cleanupAfterCommand();
       return;
@@ -422,7 +480,7 @@ function Voice() {
       const reply = `The ${intent.deviceName} is currently turned ${currentState.toLowerCase()}.`;
 
       setMessage(reply);
-      speakText(reply, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(reply, { lang: currentLang, enabled: currentTts });
       setLastCommandTime(new Date().toLocaleTimeString());
       cleanupAfterCommand();
       return;
@@ -433,7 +491,7 @@ function Voice() {
       if (intent.deviceIds.length === 0) {
         const emptyMsg = `No devices found in the ${intent.roomName}.`;
         setMessage(emptyMsg);
-        speakText(emptyMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+        speakText(emptyMsg, { lang: currentLang, enabled: currentTts });
         cleanupAfterCommand();
         return;
       }
@@ -441,7 +499,7 @@ function Voice() {
       const actionText = intent.command === "TURN_ON" ? "Turning on" : "Turning off";
       const startMsg = `${actionText} all devices in ${intent.roomName}...`;
       setMessage(startMsg);
-      speakText(startMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(startMsg, { lang: currentLang, enabled: currentTts });
 
       const commandRows = intent.deviceIds.map((devId) => ({
         device_id: devId,
@@ -453,7 +511,7 @@ function Voice() {
 
       try {
         const { processPendingCommands } = await import("../../hub/virtualHub");
-        await processPendingCommands();
+        await processPendingCommands({ immediate: true });
       } catch (err) {
         console.error("Error executing bulk command:", err);
       }
@@ -462,7 +520,7 @@ function Voice() {
         intent.command === "TURN_ON" ? "turned on" : "turned off"
       } all devices in ${intent.roomName}.`;
       setMessage(successMsg);
-      speakText(successMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(successMsg, { lang: currentLang, enabled: currentTts });
       setLastCommandTime(new Date().toLocaleTimeString());
       cleanupAfterCommand();
       return;
@@ -473,7 +531,7 @@ function Voice() {
       const actionText = intent.command === "TURN_ON" ? "Turning on" : "Turning off";
       const startMsg = `${actionText} ${intent.deviceName}...`;
       setMessage(startMsg);
-      speakText(startMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(startMsg, { lang: currentLang, enabled: currentTts });
 
       const { error } = await supabase.from("device_commands").insert({
         device_id: intent.deviceId,
@@ -484,14 +542,14 @@ function Voice() {
       if (error) {
         const errReply = "Unable to transmit command to device.";
         setMessage(errReply);
-        speakText(errReply, { lang: selectedLanguage, enabled: ttsEnabled });
+        speakText(errReply, { lang: currentLang, enabled: currentTts });
         cleanupAfterCommand();
         return;
       }
 
       try {
         const { processPendingCommands } = await import("../../hub/virtualHub");
-        await processPendingCommands();
+        await processPendingCommands({ immediate: true });
 
         const expectedState = intent.command === "TURN_ON" ? "ON" : "OFF";
         const maxAttempts = 10;
@@ -507,7 +565,7 @@ function Voice() {
               intent.command === "TURN_ON" ? "turned on" : "turned off"
             } ${intent.deviceName}.`;
             setMessage(successMsg);
-            speakText(successMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+            speakText(successMsg, { lang: currentLang, enabled: currentTts });
             setLastCommandTime(new Date().toLocaleTimeString());
             cleanupAfterCommand();
             return;
@@ -521,7 +579,7 @@ function Voice() {
 
       const sentMsg = `Command sent for ${intent.deviceName}.`;
       setMessage(sentMsg);
-      speakText(sentMsg, { lang: selectedLanguage, enabled: ttsEnabled });
+      speakText(sentMsg, { lang: currentLang, enabled: currentTts });
       setLastCommandTime(new Date().toLocaleTimeString());
       cleanupAfterCommand();
     }
@@ -530,6 +588,7 @@ function Voice() {
   function cleanupAfterCommand() {
     setProcessing(false);
     isIntentProcessingRef.current = false;
+    awakeRef.current = false;
     setAwake(false);
 
     // If wake word is active, return smoothly to wake standby

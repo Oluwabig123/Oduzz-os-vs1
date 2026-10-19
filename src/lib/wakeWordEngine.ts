@@ -89,19 +89,33 @@ export function setChimeEnabled(enabled: boolean) {
   }
 }
 
+let sharedAudioContext: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  const AudioContextClass =
+    window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return null;
+
+  if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+    sharedAudioContext = new AudioContextClass();
+  }
+  if (sharedAudioContext.state === "suspended") {
+    sharedAudioContext.resume().catch(() => {});
+  }
+  return sharedAudioContext;
+}
+
 /**
  * Plays a synthesized harmonic dual-tone chime using Web Audio API.
- * 100% offline, lightweight, and zero external audio file latency.
+ * 100% offline, lightweight, and reuses a single shared AudioContext.
  */
 export function playWakeChime() {
   if (!isChimeEnabled()) return;
 
   try {
-    const AudioContextClass =
-      window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
 
-    const ctx = new AudioContextClass();
     const now = ctx.currentTime;
 
     // Tone 1: C5 (523.25 Hz)
