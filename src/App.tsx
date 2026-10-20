@@ -50,24 +50,41 @@ class AppErrorBoundary extends React.Component<
             textAlign: "center",
           }}
         >
-          <h2 style={{ marginBottom: "8px", color: "#0f172a" }}>Something went wrong</h2>
-          <p style={{ color: "#64748b", marginBottom: "20px", maxWidth: "420px" }}>
-            {this.state.errorMessage}
-          </p>
-          <button
-            onClick={() => window.location.assign("/")}
+          <div
             style={{
-              padding: "10px 20px",
-              borderRadius: "10px",
-              border: "none",
-              background: "#315efb",
-              color: "#ffffff",
-              fontWeight: 700,
-              cursor: "pointer",
+              background: "rgba(15, 23, 42, 0.8)",
+              backdropFilter: "blur(20px)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              borderRadius: "24px",
+              padding: "36px 32px",
+              maxWidth: "460px",
+              width: "100%",
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)",
             }}
           >
-            Reload Oduzz OS
-          </button>
+            <h2 style={{ margin: "0 0 8px", color: "#f8fafc", fontSize: "22px" }}>
+              System Interruption
+            </h2>
+            <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "14px", lineHeight: 1.5 }}>
+              {this.state.errorMessage}
+            </p>
+            <button
+              onClick={() => window.location.assign("/")}
+              style={{
+                padding: "12px 24px",
+                borderRadius: "12px",
+                border: "none",
+                background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
+                color: "#ffffff",
+                fontWeight: 700,
+                fontSize: "14px",
+                cursor: "pointer",
+                boxShadow: "0 4px 16px rgba(99, 102, 241, 0.4)",
+              }}
+            >
+              Reload Oduzz OS
+            </button>
+          </div>
         </div>
       );
     }
@@ -88,27 +105,42 @@ function NotFoundPage() {
         textAlign: "center",
       }}
     >
-      <div style={{ fontSize: "48px", marginBottom: "12px" }}>🛰️</div>
-      <h1 style={{ margin: "0 0 8px", fontSize: "26px", color: "#0f172a" }}>
-        404 — Page Not Found
-      </h1>
-      <p style={{ margin: "0 0 20px", color: "#64748b", maxWidth: "400px" }}>
-        The smart home control route you requested does not exist.
-      </p>
-      <Link
-        to="/"
+      <div
         style={{
-          padding: "10px 20px",
-          borderRadius: "10px",
-          background: "#315efb",
-          color: "#ffffff",
-          textDecoration: "none",
-          fontWeight: 700,
-          fontSize: "14px",
+          background: "rgba(15, 23, 42, 0.75)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: "24px",
+          padding: "40px 32px",
+          maxWidth: "440px",
+          width: "100%",
+          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.45)",
         }}
       >
-        Return to Dashboard
-      </Link>
+        <div style={{ fontSize: "48px", marginBottom: "14px" }}>🛰️</div>
+        <h1 style={{ margin: "0 0 8px", fontSize: "24px", color: "#f8fafc" }}>
+          404 — Route Not Found
+        </h1>
+        <p style={{ margin: "0 0 24px", color: "#94a3b8", fontSize: "14px", lineHeight: 1.5 }}>
+          The smart home control sector you requested could not be located.
+        </p>
+        <Link
+          to="/"
+          style={{
+            display: "inline-block",
+            padding: "12px 24px",
+            borderRadius: "12px",
+            background: "linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)",
+            color: "#ffffff",
+            textDecoration: "none",
+            fontWeight: 700,
+            fontSize: "14px",
+            boxShadow: "0 4px 16px rgba(99, 102, 241, 0.4)",
+          }}
+        >
+          Return to Command Center
+        </Link>
+      </div>
     </div>
   );
 }
@@ -135,16 +167,28 @@ function App() {
             fallback={
               <div
                 style={{
-                  minHeight: "60vh",
+                  minHeight: "65vh",
                   display: "flex",
+                  flexDirection: "column",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: "#64748b",
+                  gap: "14px",
+                  color: "#94a3b8",
                   fontSize: "14px",
                   fontWeight: 600,
                 }}
               >
-                Loading Oduzz OS...
+                <div
+                  style={{
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "50%",
+                    border: "3px solid rgba(99, 102, 241, 0.2)",
+                    borderTopColor: "#6366f1",
+                    animation: "oduzzSpin 0.8s linear infinite",
+                  }}
+                />
+                <span>Initializing Oduzz OS...</span>
               </div>
             }
           >

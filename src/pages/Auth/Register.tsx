@@ -125,11 +125,11 @@ const Register: React.FC = () => {
         {infoMessage && (
           <div
             style={{
-              background: "#eff6ff",
-              border: "1px solid #bfdbfe",
-              color: "#1d4ed8",
-              padding: "12px 14px",
-              borderRadius: "10px",
+              background: "rgba(56, 189, 248, 0.14)",
+              border: "1px solid rgba(56, 189, 248, 0.35)",
+              color: "#7dd3fc",
+              padding: "12px 16px",
+              borderRadius: "12px",
               fontSize: "13px",
               fontWeight: 600,
               marginBottom: "20px",

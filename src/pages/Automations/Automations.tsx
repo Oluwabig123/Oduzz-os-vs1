@@ -302,395 +302,360 @@ function AutomationsPage() {
 
   return (
     <div className="automations-page">
-      <div className="automations-header">
-        <div>
-          <h1>Automations & Scenes</h1>
-          <p>Configure smart triggers, preset scenes, and automated routines</p>
-        </div>
-      </div>
-
-      {bannerMessage && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "12px 16px",
-            borderRadius: "12px",
-            background: "#eef2ff",
-            border: "1px solid #c7d2fe",
-            color: "#1e3a8a",
-            fontSize: "13px",
-            fontWeight: 600,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span>⚡ {bannerMessage}</span>
-          <button
-            onClick={() => setBannerMessage(null)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#1e3a8a",
-              cursor: "pointer",
-              fontWeight: 700,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {/* Preset Scenes Section */}
-      <section className="automations-section">
-        <div className="section-title-bar">
+      <div className="automations-container">
+        <div className="automations-header">
           <div>
-            <h2>Preset Scenes 🎬</h2>
-            <p>One-tap multi-device action routines (also voice-activated)</p>
+            <div className="page-eyebrow">INTELLIGENT WORKFLOWS</div>
+            <h1>Automations & Scenes</h1>
+            <p>Configure smart triggers, one-tap multi-device scenes, and scheduled routines</p>
           </div>
-          <button
-            className="add-btn"
-            onClick={() => setShowSceneForm(!showSceneForm)}
-          >
-            {showSceneForm ? "Cancel" : "+ Create Scene"}
-          </button>
         </div>
 
-        {showSceneForm && (
-          <div className="form-card">
-            <h3>New Scene Configuration</h3>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Scene Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Party Mode 🎉"
-                  value={sceneName}
-                  onChange={(e) => setSceneName(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Description</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Turns on living room lights and AC"
-                  value={sceneDesc}
-                  onChange={(e) => setSceneDesc(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Select Device</label>
-                <select
-                  value={selectedDeviceId}
-                  onChange={(e) => setSelectedDeviceId(e.target.value)}
-                >
-                  {devices.length === 0 ? (
-                    <option value="">No devices available</option>
-                  ) : (
-                    devices.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))
-                  )}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Target State</label>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  <select
-                    style={{ flex: 1 }}
-                    value={sceneCommand}
-                    onChange={(e) =>
-                      setSceneCommand(e.target.value as "TURN_ON" | "TURN_OFF")
-                    }
-                  >
-                    <option value="TURN_ON">Turn ON 🟢</option>
-                    <option value="TURN_OFF">Turn OFF ⚫</option>
-                  </select>
-                  <button
-                    type="button"
-                    onClick={addDraftAction}
-                    disabled={!selectedDeviceId}
-                    style={{
-                      padding: "8px 12px",
-                      borderRadius: "8px",
-                      border: "1px solid #cbd5e1",
-                      background: "#ffffff",
-                      fontWeight: 700,
-                      fontSize: "12px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    + Add Action
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {draftActions.length > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                  marginBottom: "14px",
-                }}
-              >
-                {draftActions.map((act) => {
-                  const dev = devices.find((d) => d.id === act.deviceId);
-                  return (
-                    <span
-                      key={act.deviceId}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "6px",
-                        padding: "4px 10px",
-                        borderRadius: "999px",
-                        background: "#eef2ff",
-                        color: "#315efb",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {dev?.name || "Device"} → {act.command === "TURN_ON" ? "ON" : "OFF"}
-                      <button
-                        type="button"
-                        onClick={() => removeDraftAction(act.deviceId)}
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          color: "#ef4444",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-
-            <button className="save-btn" onClick={createScene}>
-              Save Scene
+        {bannerMessage && (
+          <div className="automation-notice-banner" role="status">
+            <span>⚡ {bannerMessage}</span>
+            <button
+              onClick={() => setBannerMessage(null)}
+              className="automation-notice-close"
+              aria-label="Dismiss notice"
+            >
+              ✕
             </button>
           </div>
         )}
 
-        <div className="scenes-grid">
-          {scenes.map((scene) => {
-            const isDefault = scene.id.startsWith("scene-movie") ||
-              scene.id.startsWith("scene-night") ||
-              scene.id.startsWith("scene-welcome");
-
-            return (
-              <div className="scene-card" key={scene.id}>
-                <div>
-                  <div className="scene-card-header">
-                    <h3>{scene.name}</h3>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span className="scene-badge">
-                        {scene.actions.length > 0
-                          ? `${scene.actions.length} Action${scene.actions.length > 1 ? "s" : ""}`
-                          : "Smart Preset"}
-                      </span>
-                      {!isDefault && (
-                        <button
-                          onClick={() => deleteScene(scene.id)}
-                          title="Delete Scene"
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#94a3b8",
-                            cursor: "pointer",
-                            fontSize: "13px",
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p>{scene.description}</p>
-                </div>
-
-                <button
-                  className="trigger-scene-btn"
-                  onClick={() => triggerScene(scene)}
-                  disabled={executing === scene.id}
-                >
-                  {executing === scene.id ? "Activating..." : "Activate Scene →"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Automated Rules & Triggers */}
-      <section className="automations-section">
-        <div className="section-title-bar">
-          <div>
-            <h2>Automated Rules & Schedules ⏰</h2>
-            <p>Time-based and state-driven smart triggers</p>
+        {/* Preset Scenes Section */}
+        <section className="automations-section">
+          <div className="section-title-bar">
+            <div>
+              <h2>Preset Scenes 🎬</h2>
+              <p>One-tap multi-device action routines (also voice-activated via "Hey Oduzz")</p>
+            </div>
+            <button
+              className={`add-btn ${showSceneForm ? "btn-cancel" : ""}`}
+              onClick={() => setShowSceneForm(!showSceneForm)}
+            >
+              {showSceneForm ? "✕ Cancel" : "+ Create Scene"}
+            </button>
           </div>
-          <button
-            className="add-btn"
-            onClick={() => setShowAutoForm(!showAutoForm)}
-          >
-            {showAutoForm ? "Cancel" : "+ Add Automation"}
-          </button>
-        </div>
 
-        {showAutoForm && (
-          <div className="form-card">
-            <h3>New Automation Rule</h3>
-            <div className="form-grid">
-              <div className="form-group">
-                <label>Automation Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Sunset Lighting"
-                  value={autoName}
-                  onChange={(e) => setAutoName(e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Trigger Condition Type</label>
-                <select
-                  value={triggerType}
-                  onChange={(e) =>
-                    setTriggerType(e.target.value as "TIME" | "DEVICE_STATE")
-                  }
-                >
-                  <option value="TIME">Time-Based Schedule (Clock)</option>
-                  <option value="DEVICE_STATE">Device State Trigger</option>
-                </select>
-              </div>
-
-              {triggerType === "TIME" ? (
+          {showSceneForm && (
+            <div className="form-card">
+              <h3>New Scene Configuration</h3>
+              <div className="form-grid">
                 <div className="form-group">
-                  <label>Scheduled Time (24h)</label>
+                  <label>Scene Name</label>
                   <input
-                    type="time"
-                    value={triggerTime}
-                    onChange={(e) => setTriggerTime(e.target.value)}
+                    type="text"
+                    placeholder="e.g. Party Mode 🎉"
+                    value={sceneName}
+                    onChange={(e) => setSceneName(e.target.value)}
                   />
                 </div>
-              ) : (
-                <>
-                  <div className="form-group">
-                    <label>Trigger Device</label>
-                    <select
-                      value={triggerDeviceId}
-                      onChange={(e) => setTriggerDeviceId(e.target.value)}
-                    >
-                      {devices.map((d) => (
+
+                <div className="form-group">
+                  <label>Description</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Turns on living room lights and AC"
+                    value={sceneDesc}
+                    onChange={(e) => setSceneDesc(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Select Target Device</label>
+                  <select
+                    value={selectedDeviceId}
+                    onChange={(e) => setSelectedDeviceId(e.target.value)}
+                  >
+                    {devices.length === 0 ? (
+                      <option value="">No devices available</option>
+                    ) : (
+                      devices.map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.name}
                         </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>When Device Becomes</label>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Target State</label>
+                  <div className="inline-action-builder">
                     <select
-                      value={triggerState}
+                      value={sceneCommand}
                       onChange={(e) =>
-                        setTriggerState(e.target.value as "ON" | "OFF")
+                        setSceneCommand(e.target.value as "TURN_ON" | "TURN_OFF")
                       }
                     >
-                      <option value="ON">ON 🟢</option>
-                      <option value="OFF">OFF ⚫</option>
+                      <option value="TURN_ON">Turn ON 🟢</option>
+                      <option value="TURN_OFF">Turn OFF ⚫</option>
                     </select>
+                    <button
+                      type="button"
+                      className="add-draft-action-btn"
+                      onClick={addDraftAction}
+                      disabled={!selectedDeviceId}
+                    >
+                      + Add Action
+                    </button>
                   </div>
-                </>
+                </div>
+              </div>
+
+              {draftActions.length > 0 && (
+                <div className="draft-actions-list">
+                  {draftActions.map((act) => {
+                    const dev = devices.find((d) => d.id === act.deviceId);
+                    return (
+                      <span key={act.deviceId} className="draft-action-chip">
+                        <span>
+                          {dev?.name || "Device"} →{" "}
+                          <strong>{act.command === "TURN_ON" ? "ON" : "OFF"}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeDraftAction(act.deviceId)}
+                          className="draft-chip-remove"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
               )}
 
-              <div className="form-group">
-                <label>Action Scene to Execute</label>
-                <select
-                  value={targetSceneId}
-                  onChange={(e) => setTargetSceneId(e.target.value)}
-                >
-                  {scenes.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
+              <div className="form-actions-row">
+                <button className="save-btn" onClick={createScene}>
+                  Save Scene Preset
+                </button>
               </div>
             </div>
-            <button className="save-btn" onClick={createAutomation}>
-              Save Automation Rule
+          )}
+
+          <div className="scenes-grid">
+            {scenes.map((scene) => {
+              const isDefault =
+                scene.id.startsWith("scene-movie") ||
+                scene.id.startsWith("scene-night") ||
+                scene.id.startsWith("scene-welcome");
+
+              return (
+                <div className="scene-card" key={scene.id}>
+                  <div>
+                    <div className="scene-card-header">
+                      <h3>{scene.name}</h3>
+                      <div className="scene-header-actions">
+                        <span className="scene-badge">
+                          {scene.actions.length > 0
+                            ? `${scene.actions.length} Action${scene.actions.length > 1 ? "s" : ""}`
+                            : "Smart Preset"}
+                        </span>
+                        {!isDefault && (
+                          <button
+                            onClick={() => deleteScene(scene.id)}
+                            title="Delete Scene"
+                            className="icon-trash-btn"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p>{scene.description}</p>
+                  </div>
+
+                  <button
+                    className={`trigger-scene-btn ${executing === scene.id ? "executing" : ""}`}
+                    onClick={() => triggerScene(scene)}
+                    disabled={executing === scene.id}
+                  >
+                    <span>
+                      {executing === scene.id ? "Executing Scene..." : "Activate Scene"}
+                    </span>
+                    <span className="scene-btn-arrow">→</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Automated Rules & Triggers */}
+        <section className="automations-section">
+          <div className="section-title-bar">
+            <div>
+              <h2>Automated Rules & Schedules ⏰</h2>
+              <p>Time-based and device state-driven smart triggers</p>
+            </div>
+            <button
+              className={`add-btn ${showAutoForm ? "btn-cancel" : ""}`}
+              onClick={() => setShowAutoForm(!showAutoForm)}
+            >
+              {showAutoForm ? "✕ Cancel" : "+ Add Automation"}
             </button>
           </div>
-        )}
 
-        <div className="automations-list">
-          {automations.map((auto) => {
-            const targetScene = scenes.find((s) => s.id === auto.sceneId);
-            const trigger = auto.trigger;
-            const triggerDevice =
-              trigger.type === "DEVICE_STATE"
-                ? devices.find((d) => d.id === trigger.deviceId)
-                : null;
-
-            return (
-              <div className="automation-item" key={auto.id}>
-                <div className="auto-info">
-                  <strong>{auto.name}</strong>
-                  <span className="auto-trigger-tag">
-                    {trigger.type === "TIME"
-                      ? `⏰ Scheduled daily at ${trigger.time}`
-                      : `⚡ When ${triggerDevice?.name || "Device"} turns ${
-                          trigger.expectedState
-                        }`}
-                  </span>
-                  {targetScene && (
-                    <span className="auto-target-scene">
-                      Runs: {targetScene.name}
-                    </span>
-                  )}
+          {showAutoForm && (
+            <div className="form-card">
+              <h3>New Automation Rule</h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Automation Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sunset Lighting"
+                    value={autoName}
+                    onChange={(e) => setAutoName(e.target.value)}
+                  />
                 </div>
 
-                <div className="auto-toggle-wrapper">
-                  <span className={`auto-status ${auto.enabled ? "on" : "off"}`}>
-                    {auto.enabled ? "Active" : "Disabled"}
-                  </span>
-                  <button
-                    className={`toggle-switch ${auto.enabled ? "active" : ""}`}
-                    onClick={() => toggleAutomation(auto.id)}
+                <div className="form-group">
+                  <label>Trigger Condition Type</label>
+                  <select
+                    value={triggerType}
+                    onChange={(e) =>
+                      setTriggerType(e.target.value as "TIME" | "DEVICE_STATE")
+                    }
                   >
-                    {auto.enabled ? "ON" : "OFF"}
-                  </button>
-                  <button
-                    onClick={() => deleteAutomation(auto.id)}
-                    title="Delete Automation"
-                    style={{
-                      border: "none",
-                      background: "transparent",
-                      color: "#94a3b8",
-                      cursor: "pointer",
-                      fontSize: "14px",
-                      padding: "4px",
-                    }}
+                    <option value="TIME">⏰ Time-Based Schedule (Clock)</option>
+                    <option value="DEVICE_STATE">⚡ Device State Trigger</option>
+                  </select>
+                </div>
+
+                {triggerType === "TIME" ? (
+                  <div className="form-group">
+                    <label>Scheduled Time (24h)</label>
+                    <input
+                      type="time"
+                      value={triggerTime}
+                      onChange={(e) => setTriggerTime(e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="form-group">
+                      <label>Trigger Device</label>
+                      <select
+                        value={triggerDeviceId}
+                        onChange={(e) => setTriggerDeviceId(e.target.value)}
+                      >
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>When Device Becomes</label>
+                      <select
+                        value={triggerState}
+                        onChange={(e) =>
+                          setTriggerState(e.target.value as "ON" | "OFF")
+                        }
+                      >
+                        <option value="ON">ON 🟢</option>
+                        <option value="OFF">OFF ⚫</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                <div className="form-group">
+                  <label>Action Scene to Execute</label>
+                  <select
+                    value={targetSceneId}
+                    onChange={(e) => setTargetSceneId(e.target.value)}
                   >
-                    🗑️
-                  </button>
+                    {scenes.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </section>
+              <div className="form-actions-row">
+                <button className="save-btn" onClick={createAutomation}>
+                  Save Automation Rule
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="automations-list">
+            {automations.map((auto) => {
+              const targetScene = scenes.find((s) => s.id === auto.sceneId);
+              const trigger = auto.trigger;
+              const triggerDevice =
+                trigger.type === "DEVICE_STATE"
+                  ? devices.find((d) => d.id === trigger.deviceId)
+                  : null;
+
+              return (
+                <div
+                  className={`automation-item ${auto.enabled ? "item-enabled" : "item-disabled"}`}
+                  key={auto.id}
+                >
+                  <div className="auto-info">
+                    <div className="auto-title-row">
+                      <strong>{auto.name}</strong>
+                      <span className={`auto-status ${auto.enabled ? "on" : "off"}`}>
+                        {auto.enabled ? "Active" : "Paused"}
+                      </span>
+                    </div>
+                    <div className="auto-meta-row">
+                      <span className="auto-trigger-tag">
+                        {trigger.type === "TIME"
+                          ? `⏰ Daily at ${trigger.time}`
+                          : `⚡ When ${triggerDevice?.name || "Device"} turns ${
+                              trigger.expectedState
+                            }`}
+                      </span>
+                      {targetScene && (
+                        <span className="auto-target-scene">
+                          → {targetScene.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="auto-toggle-wrapper">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={auto.enabled}
+                      className={`modern-switch ${auto.enabled ? "active" : ""}`}
+                      onClick={() => toggleAutomation(auto.id)}
+                      title={auto.enabled ? "Disable rule" : "Enable rule"}
+                    >
+                      <span className="switch-thumb" />
+                    </button>
+
+                    <button
+                      onClick={() => deleteAutomation(auto.id)}
+                      title="Delete Automation"
+                      className="icon-trash-btn"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

@@ -127,11 +127,11 @@ export const OduzzLogo: React.FC<OduzzLogoProps> = ({
       >
         <span
           style={{
-            background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+            background: "linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
             fontSize: `${Math.round(size * 0.72)}px`,
-            fontWeight: 850,
+            fontWeight: 800,
           }}
         >
           ODUZZ
@@ -179,9 +179,11 @@ export const OduzzLogo: React.FC<OduzzLogoProps> = ({
         <span
           style={{
             fontSize: `${Math.round(size * 0.65)}px`,
-            fontWeight: 850,
+            fontWeight: 800,
             letterSpacing: "-0.6px",
-            color: "#0f172a",
+            background: "linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
           }}
           className="oduzz-brand-text"
         >

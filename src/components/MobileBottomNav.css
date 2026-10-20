@@ -12,18 +12,14 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 64px;
+    height: 68px;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(16px);
+    background: rgba(9, 13, 26, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     z-index: 9999;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Padding offset for page contents so bottom nav doesn't cover content */
-  body {
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.45);
   }
 
   .mobile-nav-item {
@@ -32,26 +28,28 @@
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: #94a3b8;
+    color: #64748b;
     font-size: 11px;
-    font-weight: 500;
-    padding: 6px 12px;
-    gap: 3px;
+    font-weight: 600;
+    padding: 6px 10px;
+    gap: 4px;
     transition: all 0.2s ease;
     flex: 1;
   }
 
-  .mobile-nav-icon {
-    font-size: 19px;
-    transition: transform 0.2s ease;
+  .mobile-nav-svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s ease, color 0.2s ease;
   }
 
   .mobile-nav-item.active {
     color: #38bdf8;
   }
 
-  .mobile-nav-item.active .mobile-nav-icon {
+  .mobile-nav-item.active .mobile-nav-svg {
     transform: translateY(-2px);
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.5));
   }
 
   /* Central Floating Voice Action Orb */
@@ -63,28 +61,24 @@
     text-decoration: none;
     color: #94a3b8;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     padding: 0 8px;
-    gap: 3px;
+    gap: 4px;
     position: relative;
-    top: -12px;
+    top: -14px;
   }
 
   .mobile-voice-orb {
-    width: 48px;
-    height: 48px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #6366f1 0%, #315efb 100%);
-    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.6);
+    background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.55);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 3px solid #0f172a;
-  }
-
-  .mobile-voice-icon {
-    font-size: 20px;
+    border: 3px solid #090d1a;
   }
 
   .mobile-nav-center-item.active .mobile-voice-orb {

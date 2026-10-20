@@ -535,434 +535,388 @@ function Devices() {
   if (loading) {
     return (
       <div className="devices-page">
-        <div className="devices-loading">Loading Devices...</div>
+        <div className="devices-container">
+          <div className="devices-loading">
+            <div className="loading-ring" />
+            <span>Connecting to Hardware & Virtual Nodes...</span>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="devices-page">
-      <div className="devices-header">
-        <div>
-          <h1>Device Manager</h1>
-          <p>Monitor and control your physical ESP32 nodes & virtual IoT appliances</p>
-        </div>
-
-        <button
-          className="add-device-trigger"
-          onClick={() => setShowAddForm(!showAddForm)}
-        >
-          {showAddForm ? "Close Form" : "+ Add Device"}
-        </button>
-      </div>
-
-      {noticeMessage && (
-        <div
-          style={{
-            marginBottom: "20px",
-            padding: "12px 16px",
-            borderRadius: "12px",
-            background: "#eef2ff",
-            border: "1px solid #c7d2fe",
-            color: "#1e3a8a",
-            fontSize: "13px",
-            fontWeight: 600,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span>ℹ️ {noticeMessage}</span>
-          <button
-            onClick={() => setNoticeMessage(null)}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#1e3a8a",
-              cursor: "pointer",
-              fontWeight: 700,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {homes.length === 0 ? (
-        <div className="empty-devices">
-          <span className="empty-icon">🏠</span>
-          <h3>No Homes Found</h3>
-          <p>Create a home and room first before attaching smart devices.</p>
-          <button
-            className="add-device-trigger"
-            style={{ marginTop: "12px" }}
-            onClick={() => navigate("/")}
-          >
-            Go to Dashboard →
-          </button>
-        </div>
-      ) : (
-        <>
-          <div className="device-selectors">
-            <div className="selector-group">
-              <label>Select Home</label>
-              <select
-                value={selectedHome}
-                onChange={(e) => {
-                  const nextHome = e.target.value;
-                  setSelectedHome(nextHome);
-                  setSearchParams(nextHome ? { home: nextHome } : {});
-                }}
-              >
-                {homes.map((home) => (
-                  <option key={home.id} value={home.id}>
-                    🏠 {home.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="selector-group">
-              <label>Select Room</label>
-              <select
-                value={selectedRoom}
-                onChange={(e) => {
-                  const nextRoom = e.target.value;
-                  setSelectedRoom(nextRoom);
-                  setSearchParams(
-                    selectedHome && nextRoom
-                      ? { home: selectedHome, room: nextRoom }
-                      : selectedHome
-                      ? { home: selectedHome }
-                      : {}
-                  );
-                }}
-                disabled={rooms.length === 0}
-              >
-                {rooms.length === 0 ? (
-                  <option value="">No rooms in this home</option>
-                ) : (
-                  rooms.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      🚪 {room.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+      <div className="devices-container">
+        <div className="devices-header">
+          <div>
+            <div className="page-eyebrow">HARDWARE & NODE MATRIX</div>
+            <h1>Device Controller</h1>
+            <p>Monitor and control your physical ESP32 relays & virtual IoT appliances</p>
           </div>
 
-          {showAddForm && (
-            <div className="add-device-card">
-              <h3>Create New Smart Device</h3>
-              <div
-                className="add-device-grid"
-                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}
-              >
-                <div className="form-field">
-                  <label>Device Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Living Room Light"
-                    value={deviceName}
-                    onChange={(e) => setDeviceName(e.target.value)}
-                  />
-                </div>
+          <button
+            className={`add-device-trigger ${showAddForm ? "btn-cancel" : ""}`}
+            onClick={() => setShowAddForm(!showAddForm)}
+          >
+            {showAddForm ? "✕ Close Form" : "+ Register Device"}
+          </button>
+        </div>
 
-                <div className="form-field">
-                  <label>Device Type</label>
-                  <select
-                    value={deviceType}
-                    onChange={(e) => setDeviceType(e.target.value)}
-                  >
-                    <option value="light">Light 💡</option>
-                    <option value="fan">Fan 🌀</option>
-                    <option value="socket">Socket 🔌</option>
-                    <option value="ac">Air Conditioner ❄️</option>
-                    <option value="tv">TV 📺</option>
-                  </select>
-                </div>
+        {noticeMessage && (
+          <div className="device-notice-banner" role="status">
+            <span>⚡ {noticeMessage}</span>
+            <button
+              onClick={() => setNoticeMessage(null)}
+              className="device-notice-close"
+              aria-label="Dismiss notice"
+            >
+              ✕
+            </button>
+          </div>
+        )}
 
-                <div className="form-field">
-                  <label>Controller Hub Type</label>
-                  <select
-                    value={connectionMode}
-                    onChange={(e) =>
-                      setConnectionMode(
-                        e.target.value as "physical" | "virtual"
-                      )
-                    }
-                  >
-                    <option value="physical">
-                      🔌 Physical Hub (ESP32 Relay)
+        {homes.length === 0 ? (
+          <div className="empty-devices">
+            <div className="empty-icon-circle">🏠</div>
+            <h3>No Smart Homes Found</h3>
+            <p>Create a home and room first before attaching smart devices.</p>
+            <button
+              className="add-device-trigger"
+              style={{ marginTop: "14px" }}
+              onClick={() => navigate("/")}
+            >
+              Go to Dashboard →
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="device-selectors">
+              <div className="selector-group">
+                <label>Property / Home</label>
+                <select
+                  value={selectedHome}
+                  onChange={(e) => {
+                    const nextHome = e.target.value;
+                    setSelectedHome(nextHome);
+                    setSearchParams(nextHome ? { home: nextHome } : {});
+                  }}
+                >
+                  {homes.map((home) => (
+                    <option key={home.id} value={home.id}>
+                      🏠 {home.name}
                     </option>
-                    <option value="virtual">
-                      💻 Virtual Hub Simulator
-                    </option>
-                  </select>
-                </div>
-
-                <div className="form-field">
-                  <label>Hardware Tag / UID (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder={
-                      connectionMode === "physical"
-                        ? "e.g. ESP32-NODE-01"
-                        : "e.g. SIM-LIGHT-01"
-                    }
-                    value={deviceUid}
-                    onChange={(e) => setDeviceUid(e.target.value)}
-                  />
-                </div>
+                  ))}
+                </select>
               </div>
 
-              <button
-                className="save-device-btn"
-                onClick={createDevice}
-                disabled={saving}
-              >
-                {saving ? "Creating Device..." : "Save Device"}
-              </button>
+              <div className="selector-group">
+                <label>Target Zone / Room</label>
+                <select
+                  value={selectedRoom}
+                  onChange={(e) => {
+                    const nextRoom = e.target.value;
+                    setSelectedRoom(nextRoom);
+                    setSearchParams(
+                      selectedHome && nextRoom
+                        ? { home: selectedHome, room: nextRoom }
+                        : selectedHome
+                        ? { home: selectedHome }
+                        : {}
+                    );
+                  }}
+                  disabled={rooms.length === 0}
+                >
+                  {rooms.length === 0 ? (
+                    <option value="">No rooms in this home</option>
+                  ) : (
+                    rooms.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        🚪 {room.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
             </div>
-          )}
 
-          <h3 className="section-title">
-            Devices in Room ({devices.length})
-          </h3>
+            {showAddForm && (
+              <div className="add-device-card">
+                <div className="add-device-card-header">
+                  <h3>Register New Smart Appliance</h3>
+                  <span className="node-setup-badge">Node Provisioning</span>
+                </div>
+                <div className="add-device-grid">
+                  <div className="form-field">
+                    <label>Device Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Chandelier, Ceiling Fan, AC..."
+                      value={deviceName}
+                      onChange={(e) => setDeviceName(e.target.value)}
+                    />
+                  </div>
 
-          {devices.length === 0 ? (
-            <div className="empty-devices">
-              <span className="empty-icon">💡</span>
-              <h3>No devices found in this room</h3>
-              <p>
-                {rooms.length === 0
-                  ? "Create a room first in the Rooms tab, then add your smart devices."
-                  : "Click '+ Add Device' above to register a physical ESP32 node or virtual device."}
-              </p>
+                  <div className="form-field">
+                    <label>Appliance Category</label>
+                    <select
+                      value={deviceType}
+                      onChange={(e) => setDeviceType(e.target.value)}
+                    >
+                      <option value="light">💡 Lighting Fixture</option>
+                      <option value="fan">🌀 Ceiling / Standing Fan</option>
+                      <option value="socket">🔌 Smart Power Socket</option>
+                      <option value="ac">❄️ Air Conditioner (HVAC)</option>
+                      <option value="tv">📺 Television / Media</option>
+                    </select>
+                  </div>
+
+                  <div className="form-field">
+                    <label>Controller Hub Type</label>
+                    <select
+                      value={connectionMode}
+                      onChange={(e) =>
+                        setConnectionMode(
+                          e.target.value as "physical" | "virtual"
+                        )
+                      }
+                    >
+                      <option value="physical">
+                        🔌 Physical Hub (ESP32 Relay)
+                      </option>
+                      <option value="virtual">
+                        💻 Virtual Hub Simulator
+                      </option>
+                    </select>
+                  </div>
+
+                  <div className="form-field">
+                    <label>Hardware Tag / UID (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder={
+                        connectionMode === "physical"
+                          ? "e.g. ESP32-NODE-01"
+                          : "e.g. SIM-LIGHT-01"
+                      }
+                      value={deviceUid}
+                      onChange={(e) => setDeviceUid(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="add-device-actions">
+                  <button
+                    className="save-device-btn"
+                    onClick={createDevice}
+                    disabled={saving}
+                  >
+                    {saving ? "Provisioning Node..." : "Save & Provision Device"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="devices-section-bar">
+              <h3 className="section-title">
+                Connected Zone Appliances
+                <span className="device-count-badge">{devices.length}</span>
+              </h3>
             </div>
-          ) : (
-            <div className="devices-grid">
-              {devices.map((device) => {
-                const state = deviceStates[device.id];
-                const activities = deviceActivity[device.id] ?? [];
-                const isPending = pendingCommands[device.id] ?? false;
-                const isActivityOpen = showActivity[device.id] ?? false;
-                const isPhysical = isDevicePhysical(device);
 
-                const getDeviceIcon = () => {
-                  switch (device.device_type) {
-                    case "light":
-                      return "💡";
-                    case "fan":
-                      return "🌀";
-                    case "socket":
-                      return "🔌";
-                    case "ac":
-                      return "❄️";
-                    case "tv":
-                      return "📺";
-                    default:
-                      return "⚡";
-                  }
-                };
+            {devices.length === 0 ? (
+              <div className="empty-devices">
+                <div className="empty-icon-circle">💡</div>
+                <h3>No devices found in this room</h3>
+                <p>
+                  {rooms.length === 0
+                    ? "Create a room first in the Rooms tab, then add your smart devices."
+                    : "Click '+ Register Device' above to pair a physical ESP32 node or virtual simulator."}
+                </p>
+              </div>
+            ) : (
+              <div className="devices-grid">
+                {devices.map((device) => {
+                  const state = deviceStates[device.id];
+                  const activities = deviceActivity[device.id] ?? [];
+                  const isPending = pendingCommands[device.id] ?? false;
+                  const isActivityOpen = showActivity[device.id] ?? false;
+                  const isPhysical = isDevicePhysical(device);
 
-                const isOn = state?.actual_state === "ON";
+                  const getDeviceIcon = () => {
+                    switch (device.device_type) {
+                      case "light":
+                        return "💡";
+                      case "fan":
+                        return "🌀";
+                      case "socket":
+                        return "🔌";
+                      case "ac":
+                        return "❄️";
+                      case "tv":
+                        return "📺";
+                      default:
+                        return "⚡";
+                    }
+                  };
 
-                return (
-                  <div className="device-card" key={device.id}>
-                    <div>
-                      <div className="device-card-header">
-                        <div className="device-title">
-                          <div className="device-icon">{getDeviceIcon()}</div>
-                          <div>
-                            <h3 className="device-name">{device.name}</h3>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                marginTop: "3px",
-                              }}
-                            >
-                              <span className="device-type">
-                                {device.device_type}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => toggleHardwareMode(device)}
-                                title="Click to switch between Physical ESP32 Hub and Virtual Simulator"
-                                style={{
-                                  fontSize: "10.5px",
-                                  fontWeight: 700,
-                                  padding: "2px 7px",
-                                  borderRadius: "6px",
-                                  border: isPhysical
-                                    ? "1px solid #bfdbfe"
-                                    : "1px solid #e2e8f0",
-                                  background: isPhysical ? "#eff6ff" : "#f8fafc",
-                                  color: isPhysical ? "#1d4ed8" : "#64748b",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {isPhysical ? "🔌 ESP32 Hub" : "💻 Virtual Sim"}
-                              </button>
+                  const isOn = state?.actual_state === "ON";
+
+                  return (
+                    <div
+                      className={`device-card ${isOn ? "device-is-on" : "device-is-off"} ${
+                        isPending ? "device-is-pending" : ""
+                      }`}
+                      key={device.id}
+                    >
+                      <div>
+                        <div className="device-card-header">
+                          <div className="device-title">
+                            <div className={`device-icon ${isOn ? "icon-illuminated" : ""}`}>
+                              {getDeviceIcon()}
+                            </div>
+                            <div>
+                              <h3 className="device-name">{device.name}</h3>
+                              <div className="device-meta-row">
+                                <span className="device-type">
+                                  {device.device_type}
+                                </span>
+                                <button
+                                  type="button"
+                                  className={`hw-mode-badge ${isPhysical ? "hw-esp" : "hw-sim"}`}
+                                  onClick={() => toggleHardwareMode(device)}
+                                  title="Click to switch between Physical ESP32 Hub and Virtual Simulator"
+                                >
+                                  {isPhysical ? "🔌 ESP32 Hub" : "💻 Virtual Sim"}
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                          }}
-                        >
-                          <span
-                            className={`status-pill ${
-                              isOn ? "status-pill-on" : "status-pill-off"
-                            }`}
-                          >
-                            {isPending ? "updating..." : isOn ? "ON" : "OFF"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => deleteDevice(device)}
-                            title="Delete device"
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              color: "#94a3b8",
-                              cursor: "pointer",
-                              fontSize: "13px",
-                              padding: "2px 4px",
-                            }}
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="device-controls">
-                        <button
-                          className="btn-on"
-                          onClick={() => sendCommand(device, "TURN_ON")}
-                          disabled={isOn || isPending}
-                        >
-                          {isPending && !isOn ? "TURNING ON..." : "TURN ON"}
-                        </button>
-
-                        <button
-                          className="btn-off"
-                          onClick={() => sendCommand(device, "TURN_OFF")}
-                          disabled={!isOn || isPending}
-                        >
-                          {isPending && isOn ? "TURNING OFF..." : "TURN OFF"}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div
-                        className="device-footer"
-                        style={{ flexWrap: "wrap", gap: "8px" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: "2px",
-                          }}
-                        >
-                          <span className="device-uid-text">
-                            UID: <strong>{device.device_uid}</strong>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => copyUuidForEsp32(device)}
-                            title={`Device UUID for ESP32 firmware: ${device.id}`}
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              padding: 0,
-                              textAlign: "left",
-                              fontSize: "11px",
-                              color:
-                                copiedDeviceId === device.id
-                                  ? "#16a34a"
-                                  : "#6366f1",
-                              fontWeight: 600,
-                              cursor: "pointer",
-                            }}
-                          >
-                            {copiedDeviceId === device.id
-                              ? "✓ Copied ESP32 UUID!"
-                              : "📋 Copy ESP32 UUID"}
-                          </button>
-                        </div>
-
-                        <button
-                          className="activity-dropdown-toggle"
-                          onClick={() => toggleActivityDropdown(device.id)}
-                        >
-                          History ({activities.length}){" "}
-                          {isActivityOpen ? "▲" : "▼"}
-                        </button>
-                      </div>
-
-                      {/* Collapsible Activity Dropdown */}
-                      {isActivityOpen && (
-                        <div className="activity-dropdown-menu">
-                          <div
-                            style={{
-                              fontSize: "10.5px",
-                              color: "#64748b",
-                              paddingBottom: "6px",
-                              borderBottom: "1px solid #e2e8f0",
-                              wordBreak: "break-all",
-                            }}
-                          >
-                            <strong>ESP32 Firmware DEVICE_ID:</strong>{" "}
-                            <code>{device.id}</code>
+                          <div className="device-status-actions">
+                            <span
+                              className={`status-pill ${
+                                isPending
+                                  ? "status-pill-pending"
+                                  : isOn
+                                  ? "status-pill-on"
+                                  : "status-pill-off"
+                              }`}
+                            >
+                              <span className="status-dot" />
+                              {isPending ? "SYNCING" : isOn ? "ON" : "OFF"}
+                            </span>
+                            <button
+                              type="button"
+                              className="device-delete-btn"
+                              onClick={() => deleteDevice(device)}
+                              title="Delete device"
+                              aria-label={`Delete ${device.name}`}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                              </svg>
+                            </button>
                           </div>
-                          {activities.length === 0 ? (
-                            <p className="no-activity">
-                              No recent activity recorded.
-                            </p>
-                          ) : (
-                            activities.slice(0, 5).map((activity) => (
-                              <div
-                                className="activity-dropdown-item"
-                                key={activity.id}
-                              >
-                                <span>
-                                  {activity.command === "TURN_ON"
-                                    ? "🟢 On"
-                                    : "⚫ Off"}
-                                </span>
-                                <span className="activity-time">
-                                  {new Date(
-                                    activity.created_at
-                                  ).toLocaleTimeString("en-NG", {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit",
-                                    hour12: true,
-                                  })}
-                                </span>
-                              </div>
-                            ))
-                          )}
                         </div>
-                      )}
+
+                        <div className="device-controls">
+                          <button
+                            className={`btn-on ${isOn ? "active-state" : ""}`}
+                            onClick={() => sendCommand(device, "TURN_ON")}
+                            disabled={isOn || isPending}
+                          >
+                            <span className="btn-power-icon">⚡</span>
+                            <span>{isPending && !isOn ? "TURNING ON..." : "TURN ON"}</span>
+                          </button>
+
+                          <button
+                            className={`btn-off ${!isOn ? "active-state" : ""}`}
+                            onClick={() => sendCommand(device, "TURN_OFF")}
+                            disabled={!isOn || isPending}
+                          >
+                            <span className="btn-power-icon">⭘</span>
+                            <span>{isPending && isOn ? "TURNING OFF..." : "TURN OFF"}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="device-footer">
+                          <div className="device-uid-group">
+                            <span className="device-uid-text">
+                              UID: <code>{device.device_uid}</code>
+                            </span>
+                            <button
+                              type="button"
+                              className={`copy-uuid-btn ${
+                                copiedDeviceId === device.id ? "copied" : ""
+                              }`}
+                              onClick={() => copyUuidForEsp32(device)}
+                              title={`Device UUID for ESP32 firmware: ${device.id}`}
+                            >
+                              {copiedDeviceId === device.id
+                                ? "✓ Copied ESP32 UUID"
+                                : "📋 Copy ESP32 UUID"}
+                            </button>
+                          </div>
+
+                          <button
+                            className="activity-dropdown-toggle"
+                            onClick={() => toggleActivityDropdown(device.id)}
+                          >
+                            History ({activities.length}){" "}
+                            {isActivityOpen ? "▲" : "▼"}
+                          </button>
+                        </div>
+
+                        {/* Collapsible Activity Dropdown */}
+                        {isActivityOpen && (
+                          <div className="activity-dropdown-menu">
+                            <div className="firmware-uuid-row">
+                              <strong>ESP32 Firmware DEVICE_ID:</strong>{" "}
+                              <code>{device.id}</code>
+                            </div>
+                            {activities.length === 0 ? (
+                              <p className="no-activity">
+                                No recent activity recorded.
+                              </p>
+                            ) : (
+                              activities.slice(0, 5).map((activity) => (
+                                <div
+                                  className="activity-dropdown-item"
+                                  key={activity.id}
+                                >
+                                  <span className="activity-cmd-tag">
+                                    {activity.command === "TURN_ON"
+                                      ? "🟢 Turned ON"
+                                      : "⚫ Turned OFF"}
+                                  </span>
+                                  <span className="activity-time">
+                                    {new Date(
+                                      activity.created_at
+                                    ).toLocaleTimeString("en-NG", {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      second: "2-digit",
+                                      hour12: true,
+                                    })}
+                                  </span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </>
-      )}
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

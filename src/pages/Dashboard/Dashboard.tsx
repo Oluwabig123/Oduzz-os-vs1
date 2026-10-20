@@ -321,282 +321,343 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="dashboard-page">
-        <div className="dashboard-loading">Loading ODUZZ OS...</div>
+        <div className="dashboard-container">
+          <div className="dashboard-loading">
+            <div className="loading-ring" />
+            <span>Synchronizing Oduzz OS Telemetry...</span>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="dashboard-page">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-          <OduzzLogo size={36} variant="icon" />
-          <div>
-            <h1>ODUZZ OS Dashboard</h1>
-            <p>Smart home system control center & analytics</p>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-          {physicalCount > 0 && (
-            <div
-              className="hub-status"
-              style={{
-                background: "#eff6ff",
-                borderColor: "#bfdbfe",
-                color: "#1d4ed8",
-              }}
-              title="Devices configured for Physical ESP32 Smart Nodes"
-            >
-              <span>🔌 {physicalCount} ESP32 Node{physicalCount > 1 ? "s" : ""}</span>
-            </div>
-          )}
-
-          <button
-            type="button"
-            className="hub-status"
-            onClick={handleToggleVirtualHub}
-            title="Click to toggle Virtual Hub Simulator ON or OFF"
-            style={{
-              cursor: "pointer",
-              background: virtualHubActive ? "#f0fdf4" : "#f1f5f9",
-              borderColor: virtualHubActive ? "#bbf7d0" : "#cbd5e1",
-              color: virtualHubActive ? "#166534" : "#475569",
-            }}
-          >
-            <span
-              className="hub-dot"
-              style={{
-                background: virtualHubActive ? "#22c55e" : "#94a3b8",
-                boxShadow: virtualHubActive
-                  ? "0 0 0 4px rgba(34, 197, 94, 0.15)"
-                  : "none",
-              }}
-            />
-            <span>
-              {virtualHubActive
-                ? "Virtual Hub Active"
-                : "Hardware-Only Mode (Virtual Hub Paused)"}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="dashboard-stats">
-        <div
-          className="dashboard-stat-card"
-          role="button"
-          tabIndex={0}
-          onClick={() => setShowForm(true)}
-        >
-          <div className="stat-icon">🏠</div>
-          <div>
-            <span className="stat-label">Homes</span>
-            <strong>{homes.length}</strong>
-          </div>
-        </div>
-
-        <div
-          className="dashboard-stat-card"
-          role="button"
-          tabIndex={0}
-          onClick={() => navigate("/rooms")}
-        >
-          <div className="stat-icon">🚪</div>
-          <div>
-            <span className="stat-label">Rooms</span>
-            <strong>{rooms.length}</strong>
-          </div>
-        </div>
-
-        <div
-          className="dashboard-stat-card"
-          role="button"
-          tabIndex={0}
-          onClick={() => navigate("/devices")}
-        >
-          <div className="stat-icon">💡</div>
-          <div>
-            <span className="stat-label">Total Devices</span>
-            <strong>{devices.length}</strong>
-          </div>
-        </div>
-
-        <div
-          className="dashboard-stat-card"
-          role="button"
-          tabIndex={0}
-          onClick={() => navigate("/devices")}
-        >
-          <div className="stat-icon">🟢</div>
-          <div>
-            <span className="stat-label">Active (ON)</span>
-            <strong>{devicesOn}</strong>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="dashboard-content">
-        {/* Homes Section */}
-        <section className="dashboard-section">
-          <div className="section-header">
+      <div className="dashboard-container">
+        {/* Hero Header */}
+        <div className="dashboard-header">
+          <div className="dashboard-title-row">
+            <OduzzLogo size={42} variant="icon" />
             <div>
-              <h2>My Homes</h2>
-              <p>Select a home to manage rooms and devices</p>
+              <div className="dashboard-eyebrow">SYSTEM COMMAND CENTER</div>
+              <h1>Oduzz OS Dashboard</h1>
+              <p>Real-time smart home orchestration, node telemetry & automation</p>
             </div>
+          </div>
+
+          <div className="dashboard-status-pills">
+            {physicalCount > 0 && (
+              <div
+                className="hub-status hub-status-esp"
+                title="Devices configured for Physical ESP32 Smart Nodes"
+              >
+                <span className="esp-dot" />
+                <span>
+                  {physicalCount} ESP32 Node{physicalCount > 1 ? "s" : ""} Online
+                </span>
+              </div>
+            )}
 
             <button
-              className="dashboard-add-button"
-              onClick={() => setShowForm(!showForm)}
+              type="button"
+              className={`hub-status ${virtualHubActive ? "hub-active" : "hub-paused"}`}
+              onClick={handleToggleVirtualHub}
+              title="Click to toggle Virtual Hub Simulator ON or OFF"
             >
-              {showForm ? "Cancel" : "+ Add Home"}
+              <span className="hub-dot" />
+              <span>
+                {virtualHubActive
+                  ? "Virtual Hub Active"
+                  : "Hardware-Only Mode"}
+              </span>
             </button>
           </div>
+        </div>
 
-          {homes.length === 0 ? (
-            <div className="dashboard-empty">
-              <div className="empty-icon">🏠</div>
-              <h3>No homes yet</h3>
-              <p>Add your first smart home to start building your system.</p>
+        {/* Summary Bento Cards */}
+        <div className="dashboard-stats">
+          <div
+            className="dashboard-stat-card stat-indigo"
+            role="button"
+            tabIndex={0}
+            onClick={() => setShowForm(true)}
+          >
+            <div className="stat-icon-wrap indigo">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
             </div>
-          ) : (
-            <div className="home-grid">
-              {homes.map((home) => {
-                const homeRooms = rooms.filter(
-                  (room) => room.home_id === home.id
-                );
-
-                const homeRoomIds = homeRooms.map((room) => room.id);
-
-                const homeDevices = devices.filter((device) =>
-                  homeRoomIds.includes(device.room_id)
-                );
-
-                return (
-                  <div
-                    className="home-card"
-                    key={home.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/rooms?home=${home.id}`)}
-                  >
-                    <div className="home-card-top">
-                      <div className="home-icon">🏠</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <button
-                          type="button"
-                          onClick={(e) => deleteHome(e, home)}
-                          title="Delete Home"
-                          style={{
-                            border: "none",
-                            background: "transparent",
-                            color: "#94a3b8",
-                            cursor: "pointer",
-                            fontSize: "14px",
-                          }}
-                        >
-                          🗑️
-                        </button>
-                        <div className="home-arrow">→</div>
-                      </div>
-                    </div>
-
-                    <h3>{home.name}</h3>
-
-                    <p className="home-address">
-                      📍 {home.address || "No address specified"}
-                    </p>
-
-                    <div className="home-meta">
-                      <span>
-                        🚪 {homeRooms.length}{" "}
-                        {homeRooms.length === 1 ? "Room" : "Rooms"}
-                      </span>
-
-                      <span>
-                        💡 {homeDevices.length}{" "}
-                        {homeDevices.length === 1 ? "Device" : "Devices"}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="stat-body">
+              <span className="stat-label">Smart Homes</span>
+              <strong>{homes.length}</strong>
             </div>
-          )}
+            <span className="stat-action-hint">+ New</span>
+          </div>
 
-          {/* Add Home Form */}
-          {showForm && (
-            <div className="dashboard-form">
-              <h3>Create New Home</h3>
+          <div
+            className="dashboard-stat-card stat-cyan"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/rooms")}
+          >
+            <div className="stat-icon-wrap cyan">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            </div>
+            <div className="stat-body">
+              <span className="stat-label">Configured Zones</span>
+              <strong>{rooms.length}</strong>
+            </div>
+            <span className="stat-action-hint">Manage →</span>
+          </div>
 
-              <div className="dashboard-form-group">
-                <label>Home Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Main House"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </div>
+          <div
+            className="dashboard-stat-card stat-violet"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/devices")}
+          >
+            <div className="stat-icon-wrap violet">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18h6" />
+                <path d="M10 22h4" />
+                <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+              </svg>
+            </div>
+            <div className="stat-body">
+              <span className="stat-label">Total Appliances</span>
+              <strong>{devices.length}</strong>
+            </div>
+            <span className="stat-action-hint">View All →</span>
+          </div>
 
-              <div className="dashboard-form-group">
-                <label>Address</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 12 Victoria Island"
-                  value={address}
-                  onChange={(event) => setAddress(event.target.value)}
-                />
+          <div
+            className={`dashboard-stat-card stat-emerald ${devicesOn > 0 ? "is-glowing" : ""}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/devices")}
+          >
+            <div className="stat-icon-wrap emerald">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                <line x1="12" y1="2" x2="12" y2="12" />
+              </svg>
+            </div>
+            <div className="stat-body">
+              <span className="stat-label">Active Power (ON)</span>
+              <strong>{devicesOn}</strong>
+            </div>
+            <span className="stat-live-badge">
+              {devicesOn > 0 ? `${devicesOn} Running` : "Standby"}
+            </span>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="dashboard-content">
+          {/* Homes Section */}
+          <section className="dashboard-section">
+            <div className="section-header">
+              <div>
+                <h2>My Smart Homes</h2>
+                <p>Select a property to manage rooms, zones, and connected ESP32 hardware</p>
               </div>
 
               <button
-                className="dashboard-save-button"
-                onClick={createHome}
-                disabled={saving}
+                className={`dashboard-add-button ${showForm ? "btn-cancel" : ""}`}
+                onClick={() => setShowForm(!showForm)}
               >
-                {saving ? "Saving..." : "Save Home"}
+                {showForm ? "✕ Cancel" : "+ Add Smart Home"}
               </button>
             </div>
-          )}
-        </section>
 
-        {/* Interactive System Activity Log Section */}
-        <section className="dashboard-section activity-section">
-          <div
-            className="section-header clickable-header"
-            onClick={() => setShowActivity(!showActivity)}
-          >
-            <div>
-              <h2>
-                System Activity Log ({activities.length}){" "}
-                <span className="toggle-icon">{showActivity ? "▲" : "▼"}</span>
-              </h2>
-              <p>
-                Real-time telemetry, automated routines & voice command audit
-                trail
-              </p>
+            {/* Add Home Form */}
+            {showForm && (
+              <div className="dashboard-form">
+                <div className="form-header-row">
+                  <h3>Register New Smart Home</h3>
+                  <span className="form-badge">Property Setup</span>
+                </div>
+
+                <div className="dashboard-form-grid">
+                  <div className="dashboard-form-group">
+                    <label>Home / Property Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Victoria Island Residence"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                    />
+                  </div>
+
+                  <div className="dashboard-form-group">
+                    <label>Location / Address (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 12 Ahmadu Bello Way, Lagos"
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="dashboard-form-actions">
+                  <button
+                    className="dashboard-save-button"
+                    onClick={createHome}
+                    disabled={saving}
+                  >
+                    {saving ? "Provisioning Home..." : "Create Smart Home"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {homes.length === 0 ? (
+              <div className="dashboard-empty">
+                <div className="empty-icon-circle">🏠</div>
+                <h3>No Smart Homes Registered Yet</h3>
+                <p>Create your first smart home above to start organizing rooms and IoT nodes.</p>
+                {!showForm && (
+                  <button
+                    className="dashboard-add-button"
+                    style={{ marginTop: "14px" }}
+                    onClick={() => setShowForm(true)}
+                  >
+                    + Create Your First Home
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="home-grid">
+                {homes.map((home) => {
+                  const homeRooms = rooms.filter(
+                    (room) => room.home_id === home.id
+                  );
+
+                  const homeRoomIds = homeRooms.map((room) => room.id);
+
+                  const homeDevices = devices.filter((device) =>
+                    homeRoomIds.includes(device.room_id)
+                  );
+
+                  const activeInHome = homeDevices.filter((d) =>
+                    deviceStates.some(
+                      (s) => s.device_id === d.id && s.actual_state === "ON"
+                    )
+                  ).length;
+
+                  return (
+                    <div
+                      className="home-card"
+                      key={home.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(`/rooms?home=${home.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          navigate(`/rooms?home=${home.id}`);
+                        }
+                      }}
+                    >
+                      <div className="home-card-top">
+                        <div className="home-icon">
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                        </div>
+                        <div className="home-card-actions">
+                          {activeInHome > 0 && (
+                            <span className="home-active-pill">
+                              <span className="home-active-dot" />
+                              {activeInHome} ON
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="icon-delete-btn"
+                            onClick={(e) => deleteHome(e, home)}
+                            title="Delete Home"
+                            aria-label={`Delete ${home.name}`}
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                          <div className="home-arrow">→</div>
+                        </div>
+                      </div>
+
+                      <h3>{home.name}</h3>
+
+                      <p className="home-address">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <span>{home.address || "Primary Smart Residence"}</span>
+                      </p>
+
+                      <div className="home-meta">
+                        <span className="meta-chip">
+                          <strong>{homeRooms.length}</strong>{" "}
+                          {homeRooms.length === 1 ? "Room" : "Rooms"}
+                        </span>
+
+                        <span className="meta-chip">
+                          <strong>{homeDevices.length}</strong>{" "}
+                          {homeDevices.length === 1 ? "Device" : "Devices"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Interactive System Activity Log Section */}
+          <section className="dashboard-section activity-section">
+            <div
+              className="section-header clickable-header"
+              onClick={() => setShowActivity(!showActivity)}
+            >
+              <div>
+                <h2>
+                  System Activity Telemetry
+                  <span className="activity-count-pill">{activities.length}</span>
+                </h2>
+                <p>
+                  Real-time hardware state transitions, automated routines & voice command audit trail
+                </p>
+              </div>
+
+              <button className="activity-toggle-btn">
+                {showActivity ? "Collapse ▲" : "Expand ▼"}
+              </button>
             </div>
 
-            <button className="activity-toggle-btn">
-              {showActivity ? "Collapse" : "Expand"}
-            </button>
-          </div>
-
-          {showActivity && (
-            <div className="activity-dropdown-container">
-              <ActivityLogView
-                activities={activities}
-                devices={devices}
-                rooms={rooms}
-                onRefresh={refreshLogs}
-                isRefreshing={isRefreshingLogs}
-              />
-            </div>
-          )}
-        </section>
+            {showActivity && (
+              <div className="activity-dropdown-container">
+                <ActivityLogView
+                  activities={activities}
+                  devices={devices}
+                  rooms={rooms}
+                  onRefresh={refreshLogs}
+                  isRefreshing={isRefreshingLogs}
+                />
+              </div>
+            )}
+          </section>
+        </div>
       </div>
     </div>
   );
