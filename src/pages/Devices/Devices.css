@@ -672,9 +672,10 @@
   }
 
   .device-selectors {
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 14px;
+    margin-bottom: 22px;
   }
 
   .add-device-card {

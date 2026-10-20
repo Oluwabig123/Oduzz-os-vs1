@@ -1,8 +1,6 @@
 // Oduzz OS Service Worker
-const CACHE_NAME = 'oduzz-os-v1';
+const CACHE_NAME = 'oduzz-os-v3';
 const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon-192.svg',
@@ -12,13 +10,12 @@ const PRECACHE_ASSETS = [
   '/icons/apple-touch-icon.png'
 ];
 
-// Install: Cache essential app shell
+// Install: Cache essential static icons/manifest & activate immediately
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_ASSETS);
-    }).then(() => {
-      return self.skipWaiting();
     })
   );
 });
@@ -40,7 +37,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Strategy for offline support
+// Fetch: Network-first for HTML & hashed bundles so UI updates appear immediately
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
@@ -49,53 +46,33 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.includes('/rest/v1/') || url.pathname.includes('/auth/v1/')) return;
 
-  // Stale-while-revalidate for static assets, network-first for navigation
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match('/') || caches.match('/index.html');
-      })
-    );
-    return;
-  }
-
+  // Network-first for navigation and app assets
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached and update in background
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse);
-            });
-          }
-        }).catch(() => {});
-        return cachedResponse;
-      }
-
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (
-            !networkResponse ||
-            networkResponse.status !== 200 ||
-            networkResponse.type !== 'basic'
-          ) {
-            return networkResponse;
-          }
-
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (
+          networkResponse &&
+          networkResponse.status === 200 &&
+          networkResponse.type === 'basic'
+        ) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseToCache);
           });
-
-          return networkResponse;
-        })
-        .catch(() => {
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.mode === 'navigate') {
+            return caches.match('/') || caches.match('/index.html');
+          }
           return new Response('Offline', {
             status: 503,
             statusText: 'Service Unavailable (Offline)',
           });
         });
-    })
+      })
   );
 });

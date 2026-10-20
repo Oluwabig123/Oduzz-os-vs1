@@ -654,6 +654,10 @@
     margin-bottom: 22px;
   }
 
+  .dashboard-title-row .oduzz-logo-icon-wrapper {
+    display: none;
+  }
+
   .dashboard-header h1 {
     font-size: 23px;
   }
