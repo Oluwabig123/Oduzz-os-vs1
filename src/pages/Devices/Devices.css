@@ -326,7 +326,7 @@
   border-radius: 14px;
   background: rgba(30, 41, 59, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 23px;
+  color: #94a3b8;
   flex-shrink: 0;
   transition: all 0.3s ease;
 }
@@ -334,6 +334,7 @@
 .device-icon.icon-illuminated {
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(16, 185, 129, 0.45);
+  color: #34d399;
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
 }
 
@@ -653,7 +654,7 @@
 
 @media (max-width: 768px) {
   .devices-page {
-    padding: 20px 16px 40px;
+    padding: 18px 16px 100px;
   }
 
   .devices-header {

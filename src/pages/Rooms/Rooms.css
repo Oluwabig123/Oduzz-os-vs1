@@ -388,7 +388,7 @@
 
 @media (max-width: 640px) {
   .rooms-page {
-    padding: 20px 16px 40px;
+    padding: 18px 16px 100px;
   }
 
   .rooms-header {

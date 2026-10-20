@@ -491,7 +491,7 @@
 
 @media (max-width: 640px) {
   .automations-page {
-    padding: 20px 16px 40px;
+    padding: 18px 16px 100px;
   }
 
   .automations-header h1 {

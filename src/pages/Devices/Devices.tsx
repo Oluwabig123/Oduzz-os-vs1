@@ -604,7 +604,7 @@ function Devices() {
                 >
                   {homes.map((home) => (
                     <option key={home.id} value={home.id}>
-                      🏠 {home.name}
+                      {home.name}
                     </option>
                   ))}
                 </select>
@@ -632,7 +632,7 @@ function Devices() {
                   ) : (
                     rooms.map((room) => (
                       <option key={room.id} value={room.id}>
-                        🚪 {room.name}
+                        {room.name}
                       </option>
                     ))
                   )}
@@ -746,17 +746,53 @@ function Devices() {
                   const getDeviceIcon = () => {
                     switch (device.device_type) {
                       case "light":
-                        return "💡";
+                        return (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 18h6" />
+                            <path d="M10 22h4" />
+                            <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+                          </svg>
+                        );
                       case "fan":
-                        return "🌀";
+                        return (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.827 16.379a6.082 6.082 0 0 1-8.618-7.002l5.412 1.45a6.082 6.082 0 0 1 7.002-8.618l-1.45 5.412a6.082 6.082 0 0 1 8.618 7.002l-5.412-1.45a6.082 6.082 0 0 1-7.002 8.618l1.45-5.412Z" />
+                            <circle cx="12" cy="12" r="2" />
+                          </svg>
+                        );
                       case "socket":
-                        return "🔌";
+                        return (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22v-5" />
+                            <path d="M9 8V2" />
+                            <path d="M15 8V2" />
+                            <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z" />
+                          </svg>
+                        );
                       case "ac":
-                        return "❄️";
+                        return (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="2" y1="12" x2="22" y2="12" />
+                            <line x1="12" y1="2" x2="12" y2="22" />
+                            <path d="m20 16-4-4 4-4" />
+                            <path d="m4 8 4 4-4 4" />
+                            <path d="m16 4-4 4-4-4" />
+                            <path d="m8 20 4-4 4 4" />
+                          </svg>
+                        );
                       case "tv":
-                        return "📺";
+                        return (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+                            <polyline points="17 2 12 7 7 2" />
+                          </svg>
+                        );
                       default:
-                        return "⚡";
+                        return (
+                          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                          </svg>
+                        );
                     }
                   };
 
@@ -787,7 +823,7 @@ function Devices() {
                                   onClick={() => toggleHardwareMode(device)}
                                   title="Click to switch between Physical ESP32 Hub and Virtual Simulator"
                                 >
-                                  {isPhysical ? "🔌 ESP32 Hub" : "💻 Virtual Sim"}
+                                  {isPhysical ? "ESP32 Hub" : "Virtual Sim"}
                                 </button>
                               </div>
                             </div>
@@ -827,7 +863,9 @@ function Devices() {
                             onClick={() => sendCommand(device, "TURN_ON")}
                             disabled={isOn || isPending}
                           >
-                            <span className="btn-power-icon">⚡</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                            </svg>
                             <span>{isPending && !isOn ? "TURNING ON..." : "TURN ON"}</span>
                           </button>
 
@@ -836,7 +874,10 @@ function Devices() {
                             onClick={() => sendCommand(device, "TURN_OFF")}
                             disabled={!isOn || isPending}
                           >
-                            <span className="btn-power-icon">⭘</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18.36 6.64a9 9 0 1 1-12.73 0" />
+                              <line x1="12" y1="2" x2="12" y2="12" />
+                            </svg>
                             <span>{isPending && isOn ? "TURNING OFF..." : "TURN OFF"}</span>
                           </button>
                         </div>
@@ -858,7 +899,7 @@ function Devices() {
                             >
                               {copiedDeviceId === device.id
                                 ? "✓ Copied ESP32 UUID"
-                                : "📋 Copy ESP32 UUID"}
+                                : "Copy ESP32 UUID"}
                             </button>
                           </div>
 

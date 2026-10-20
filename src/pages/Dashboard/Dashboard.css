@@ -644,22 +644,49 @@
 
 @media (max-width: 640px) {
   .dashboard-page {
-    padding: 20px 16px 40px;
+    padding: 18px 16px 100px;
   }
 
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 14px;
+    gap: 12px;
+    margin-bottom: 22px;
   }
 
   .dashboard-header h1 {
-    font-size: 24px;
+    font-size: 23px;
   }
 
   .dashboard-stats {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .dashboard-stat-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px;
+    gap: 10px;
+    border-radius: 16px;
+  }
+
+  .stat-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .dashboard-stat-card strong {
+    font-size: 22px;
+  }
+
+  .stat-action-hint,
+  .stat-live-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
   }
 
   .dashboard-section {

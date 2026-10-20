@@ -49,13 +49,26 @@ export const GlobalVoiceAssistant: React.FC = () => {
       }}
       title="Quick Voice Assistant — Tap to open voice control"
     >
-      <div className={`fab-orb ${isWakeEnabled ? "wake-active" : ""}`}>
-        <span className="fab-icon">🎙️</span>
-        <span className="fab-pulse-ring" />
-      </div>
       <div className="fab-tooltip">
         <OduzzLogo size={16} variant="icon" />
         <span>{isWakeEnabled ? "Voice Standby Ready" : "Voice Assistant"}</span>
+      </div>
+      <div className={`fab-orb ${isWakeEnabled ? "wake-active" : ""}`}>
+        <svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <line x1="12" y1="19" x2="12" y2="22" />
+        </svg>
+        <span className="fab-pulse-ring" />
       </div>
     </div>
   );
